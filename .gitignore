@@ -20,3 +20,7 @@ dist/
 
 # Release build output (apps/mac/scripts/release-dmg.sh)
 apps/mac/build/
+
+# SwiftPM on Windows copies resource bundles next to the package
+apps/mac/Packages/*/Info.plist
+apps/mac/Packages/LocalAPI/document-schemas.json
