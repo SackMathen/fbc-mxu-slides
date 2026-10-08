@@ -1,7 +1,8 @@
-import CoreGraphics
 import Foundation
+#if canImport(ImageIO)
+import CoreGraphics
 import ImageIO
-import UniformTypeIdentifiers
+#endif
 
 enum TextureBaker {
 
@@ -14,6 +15,7 @@ enum TextureBaker {
         "ltUpDiag", "ltDnDiag", "dkUpDiag", "dkDnDiag", "wdUpDiag", "wdDnDiag",
     ]
 
+    #if canImport(ImageIO)
     static func bake(_ bake: TextureBake, canvasWidth: Int, canvasHeight: Int, to output: URL) -> Bool {
         guard canvasWidth > 0, canvasHeight > 0,
               let context = CGContext(
@@ -38,7 +40,7 @@ enum TextureBaker {
 
         guard let baked = context.makeImage(),
               let destination = CGImageDestinationCreateWithURL(
-                  output as CFURL, UTType.png.identifier as CFString, 1, nil)
+                  output as CFURL, "public.png" as CFString, 1, nil)
         else { return false }
         CGImageDestinationAddImage(destination, baked, nil)
         return CGImageDestinationFinalize(destination)
@@ -176,4 +178,12 @@ enum TextureBaker {
         guard values.count == 4 else { return CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1) }
         return CGColor(srgbRed: values[0], green: values[1], blue: values[2], alpha: values[3])
     }
+    #else
+    // TODO(windows): rasterize textures and pattern fills (Direct2D or a small
+    // software rasterizer). Until then imports keep the fill description but
+    // no baked PNG, and the importer reports the texture as skipped.
+    static func bake(_ bake: TextureBake, canvasWidth: Int, canvasHeight: Int, to output: URL) -> Bool {
+        false
+    }
+    #endif
 }

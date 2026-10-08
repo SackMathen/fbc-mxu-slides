@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import Metal
 import QuartzCore
@@ -298,3 +299,4 @@ extension MetalSceneView: CAMetalDisplayLinkDelegate {
         compositor.present(texture: ring.textures[read], into: update.drawable)
     }
 }
+#endif

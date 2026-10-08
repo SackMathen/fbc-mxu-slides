@@ -1,3 +1,4 @@
+#if canImport(ImageIO)
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -521,3 +522,4 @@ struct MediaMissingTests {
                 == ["pre", "walk-in", "song"])
     }
 }
+#endif

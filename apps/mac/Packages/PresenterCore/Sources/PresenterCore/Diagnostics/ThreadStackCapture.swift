@@ -1,7 +1,9 @@
-import Darwin
 import Foundation
+#if canImport(Darwin)
+import Darwin
 import MachO
 import os
+#endif
 
 public struct RawStack: Sendable, Equatable {
     public var addresses: [UInt]
@@ -46,6 +48,7 @@ public struct StackFrame: Sendable, Equatable, CustomStringConvertible {
     }
 }
 
+#if canImport(Darwin)
 public final class ThreadStackCapture: Sendable {
 
     public static let capacity = 64
@@ -202,3 +205,52 @@ public final class ThreadStackCapture: Sendable {
         frame.imageBase != 0 && (frame.imageBase == ownImage.loadAddress || frame.imageBase == mainExecutableBase)
     }
 }
+#else
+/// Off Apple platforms there is no supported way to suspend another thread and
+/// walk its stack from user space, so captures come back empty. Symbolication
+/// still labels each address with the module it falls in (via `LoadedImage`),
+/// which keeps hitch reports readable.
+///
+/// TODO(windows): capture with SuspendThread + GetThreadContext + StackWalk64
+/// and symbolicate with DbgHelp's SymFromAddr.
+public final class ThreadStackCapture: Sendable {
+
+    public static let capacity = 64
+
+    private init() {}
+
+    @MainActor public static func mainThread() -> ThreadStackCapture {
+        currentThread()
+    }
+
+    public static func currentThread() -> ThreadStackCapture {
+        ThreadStackCapture()
+    }
+
+    public func capture() -> RawStack {
+        .empty
+    }
+
+    public static func symbolicate(_ stack: RawStack, dropLeading: Int = 0) -> [StackFrame] {
+        let resolved = stack.addresses.map { address -> StackFrame in
+            var frame = StackFrame(address: address, image: "", imageBase: 0, symbol: nil, symbolStart: 0)
+            if let pointer = UnsafeRawPointer(bitPattern: address), let image = LoadedImage(containing: pointer) {
+                frame.image = image.name
+                frame.imageBase = image.loadAddress
+            }
+            return frame
+        }
+        return Array(resolved.dropFirst(dropLeading))
+    }
+
+    public static let ownImage: LoadedImage = {
+        let header = #dsohandle
+        return LoadedImage(containing: header)
+            ?? LoadedImage(name: "", loadAddress: UInt(bitPattern: header), uuid: nil)
+    }()
+
+    public static func isAppFrame(_ frame: StackFrame) -> Bool {
+        frame.imageBase != 0 && frame.imageBase == ownImage.loadAddress
+    }
+}
+#endif

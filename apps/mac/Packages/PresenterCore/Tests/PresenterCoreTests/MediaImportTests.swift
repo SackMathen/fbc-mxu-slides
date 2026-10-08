@@ -1,3 +1,4 @@
+#if canImport(ImageIO)
 import AVFoundation
 import CoreGraphics
 import Foundation
@@ -183,3 +184,4 @@ struct MediaImportTests {
         #expect(snapshot.area(kind: .media, id: image.id) == .team && snapshot.area(kind: .audio, id: audio.id) == .team)
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import CoreGraphics
 import Foundation
 import Metal
@@ -412,3 +413,4 @@ extension CGPath {
         return length
     }
 }
+#endif

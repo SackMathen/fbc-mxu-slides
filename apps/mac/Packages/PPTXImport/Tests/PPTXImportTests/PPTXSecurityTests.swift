@@ -1,3 +1,4 @@
+#if canImport(Darwin)
 import Foundation
 import Testing
 @testable import PPTXImport
@@ -72,3 +73,4 @@ struct PPTXSecurityTests {
         #expect(throws: (any Error).self) { try PPTXArchive.extract(archive) }
     }
 }
+#endif

@@ -10,13 +10,15 @@ let package = Package(
         .library(name: "LocalAPI", targets: ["LocalAPI"])
     ],
     dependencies: [
-        .package(url: "https://github.com/swhitty/FlyingFox.git", from: "0.27.0")
+        .package(url: "https://github.com/swhitty/FlyingFox.git", from: "0.27.0"),
+        .package(path: "../PortableSupport"),
     ],
     targets: [
         .target(
             name: "LocalAPI",
             dependencies: [
-                .product(name: "FlyingFox", package: "FlyingFox")
+                .product(name: "FlyingFox", package: "FlyingFox"),
+                .product(name: "PortableCrypto", package: "PortableSupport", condition: .when(platforms: [.windows, .linux])),
             ],
             resources: [
                 .copy("Resources/document-schemas.json")

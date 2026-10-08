@@ -1,5 +1,7 @@
-import AVFoundation
 import Foundation
+#if canImport(AVFoundation)
+import AVFoundation
+#endif
 
 @MainActor
 public struct TranscodeQueue {
@@ -49,6 +51,7 @@ public struct TranscodeQueue {
         }
         _ = await finish(.transcoding, detail: "")
 
+        #if canImport(AVFoundation)
         let asset = AVURLAsset(url: sourceURL)
         let hasAlpha = await Self.carriesAlpha(asset)
         let preset = hasAlpha
@@ -68,8 +71,16 @@ public struct TranscodeQueue {
             try? FileManager.default.removeItem(at: outputURL)
             return await finish(.transcodeFailed, detail: error.localizedDescription)
         }
+        #else
+        // TODO(windows): transcode with Media Foundation (IMFTranscodeProfile / sink writer).
+        _ = sourceURL
+        return await finish(
+            .transcodeFailed,
+            detail: "transcoding is not available on \(BuildIdentity.platformName) yet")
+        #endif
     }
 
+    #if canImport(AVFoundation)
     private static func carriesAlpha(_ asset: AVURLAsset) async -> Bool {
         guard let track = try? await asset.loadTracks(withMediaType: .video).first,
               let descriptions = try? await track.load(.formatDescriptions)
@@ -85,4 +96,5 @@ public struct TranscodeQueue {
                 || subType == kCMVideoCodecType_AppleProRes4444XQ
         }
     }
+    #endif
 }

@@ -1,3 +1,4 @@
+#if canImport(AVFoundation)
 import AVFoundation
 import Foundation
 import Testing
@@ -137,3 +138,4 @@ struct RecordingLibraryTests {
         #expect(RecordingLibrary.latestRecording(in: [loaded], folder: "Recordings")?.id == item.id)
     }
 }
+#endif

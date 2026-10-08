@@ -1,19 +1,30 @@
-import CoreGraphics
 import Foundation
-import ImageIO
 import Testing
+#if canImport(ImageIO)
+import CoreGraphics
+import ImageIO
 import UniformTypeIdentifiers
+#endif
 @testable import PresenterCore
 
 @Test func editorPastePrefersObjectsThenSlidesThenFilesThenImages() {
-    let tiff = UTType.tiff.identifier
+    let tiff = "public.tiff"
+    let png = "public.png"
     #expect(EditorPaste.source(types: [EditorPaste.objectsType, EditorPaste.slidesType]) == .objects)
     #expect(EditorPaste.source(types: [EditorPaste.slideType, EditorPaste.slidesType]) == .slides)
 
-    #expect(EditorPaste.source(types: [tiff, UTType.fileURL.identifier]) == .files)
+    #expect(EditorPaste.source(types: [tiff, "public.file-url"]) == .files)
     #expect(EditorPaste.source(types: ["com.apple.iWork.TSPNativeData", tiff]) == .image)
-    #expect(EditorPaste.source(types: [UTType.utf8PlainText.identifier]) == nil)
-    #expect(EditorPaste.imageType(in: [tiff, UTType.png.identifier]) == UTType.png.identifier)
+    #expect(EditorPaste.source(types: ["public.utf8-plain-text"]) == nil)
+    #expect(EditorPaste.imageType(in: [tiff, png]) == png)
+}
+
+#if canImport(ImageIO)
+@Test func editorPasteIdentifiersMatchTheSystemTypes() {
+    #expect(EditorPaste.fileURLType == UTType.fileURL.identifier)
+    #expect(EditorPaste.tiffType == UTType.tiff.identifier)
+    #expect(EditorPaste.keptImageTypes.map(\.identifier) == [UTType.png, .jpeg, .heic, .gif].map(\.identifier))
+    #expect(EditorPaste.keptImageTypes.map(\.fileExtension) == [UTType.png, .jpeg, .heic, .gif].map { $0.preferredFilenameExtension })
 }
 
 @Test func pastedTIFFBecomesAPNGFileAndPNGIsKeptAsCopied() throws {
@@ -46,3 +57,18 @@ import UniformTypeIdentifiers
 
     #expect(EditorPaste.writeImage(Data("not an image".utf8), type: UTType.tiff.identifier, into: directory.appendingPathComponent("bad")) == nil)
 }
+#else
+@Test func pastedPNGIsKeptAndOtherFormatsAreDeclinedWithoutImageIO() throws {
+    var png: [UInt8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+    png += [0, 0, 0, 13] + Array("IHDR".utf8) + [0, 0, 0, 40, 0, 0, 0, 20, 8, 6, 0, 0, 0] + [0, 0, 0, 0]
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let kept = try #require(EditorPaste.writeImage(Data(png), type: "public.png", into: directory))
+    #expect(kept.lastPathComponent == "Pasted Image.png")
+    #expect(try Data(contentsOf: kept) == Data(png))
+
+    #expect(EditorPaste.writeImage(Data(png), type: "public.tiff", into: directory.appendingPathComponent("tiff")) == nil)
+    #expect(EditorPaste.writeImage(Data("not an image".utf8), type: "public.png", into: directory.appendingPathComponent("bad")) == nil)
+}
+#endif

@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import Foundation
 import Metal
 import Testing
@@ -63,3 +64,4 @@ struct ThumbnailPeakLookTests {
         #expect(SlideSceneBuilder.lookKey(for: noteSlide, theme: nil) == "|")
     }
 }
+#endif

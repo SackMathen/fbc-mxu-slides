@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import CoreGraphics
 import Foundation
 import Metal
@@ -2264,3 +2265,4 @@ public final class Compositor: @unchecked Sendable {
         return vertices
     }
 }
+#endif

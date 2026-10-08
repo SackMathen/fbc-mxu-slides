@@ -1,3 +1,4 @@
+#if canImport(CoreText)
 import CoreGraphics
 import CoreText
 import Foundation
@@ -379,3 +380,4 @@ enum PathTextLayout {
         return placed
     }
 }
+#endif

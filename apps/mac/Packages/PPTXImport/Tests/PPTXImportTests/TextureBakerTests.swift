@@ -1,3 +1,4 @@
+#if canImport(ImageIO)
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -31,3 +32,4 @@ struct TextureBakerTests {
         #expect(red(17, 8) < 40, "next grid line lands one cell over")
     }
 }
+#endif

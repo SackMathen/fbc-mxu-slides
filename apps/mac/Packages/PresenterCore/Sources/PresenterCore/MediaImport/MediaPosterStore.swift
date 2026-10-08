@@ -1,6 +1,14 @@
-import CryptoKit
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import PortableCrypto
+#endif
+#if canImport(os)
 import os
+#else
+import PortableOS
+#endif
 
 public struct MediaPosterStore: Sendable {
     public let directory: URL

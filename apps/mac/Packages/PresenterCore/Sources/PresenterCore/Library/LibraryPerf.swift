@@ -1,5 +1,9 @@
 import Foundation
+#if canImport(os)
 import os
+#else
+import PortableOS
+#endif
 
 let perfSignposter = OSSignposter(
     subsystem: "com.example.mxuslides", category: "library"
@@ -152,7 +156,7 @@ extension LibraryIndex {
     }
 
     nonisolated static func countStatement() {
-        if pthread_main_np() != 0 {
+        if Thread.isMainThread {
             mainThreadStatements += 1
         }
     }

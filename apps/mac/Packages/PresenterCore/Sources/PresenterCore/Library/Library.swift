@@ -1,5 +1,9 @@
 import Foundation
+#if canImport(os)
 import os
+#else
+import PortableOS
+#endif
 
 @LibraryActor public final class Library {
     public let store: DocumentStore

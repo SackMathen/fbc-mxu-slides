@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import Accelerate
 import CoreGraphics
 import CoreText
@@ -1189,3 +1190,4 @@ public enum TextRasterizer {
         }
     }
 }
+#endif

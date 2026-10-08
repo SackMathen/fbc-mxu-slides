@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import CoreGraphics
 import Foundation
 import Metal
@@ -236,3 +237,4 @@ extension Compositor {
         encoder.endEncoding()
     }
 }
+#endif

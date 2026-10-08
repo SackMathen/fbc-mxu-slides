@@ -1,3 +1,4 @@
+#if canImport(ImageIO)
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -38,3 +39,11 @@ public enum PosterDecode {
         return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
     }
 }
+#else
+// TODO(windows): poster decoding produces a CGImage for the Mac thumbnail
+// pipeline; the Windows thumbnail path will decode through Windows Imaging
+// Component into its own bitmap type.
+public enum PosterDecode {
+    public static let maxPixelSize = 512
+}
+#endif

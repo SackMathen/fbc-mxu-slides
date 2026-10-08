@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import CoreGraphics
 import CoreText
 import Foundation
@@ -159,3 +160,4 @@ enum PathTextStrip {
         return Strip(texture: texture, run: run)
     }
 }
+#endif

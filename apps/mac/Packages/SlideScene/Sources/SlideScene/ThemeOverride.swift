@@ -1,6 +1,8 @@
-import CoreText
 import Foundation
 import PresenterCore
+#if canImport(CoreText)
+import CoreText
+#endif
 
 public enum ThemeOverride {
 
@@ -160,12 +162,18 @@ public enum ThemeOverride {
     }
 
     static func traits(ofFontNamed name: String) -> (bold: Bool, italic: Bool) {
+        #if canImport(CoreText)
         let font = CTFontCreateWithName(name as CFString, 12, nil)
         let traits = CTFontGetSymbolicTraits(font)
         return (traits.contains(.traitBold), traits.contains(.traitItalic))
+        #else
+        // TODO(windows): ask DirectWrite for the face's actual weight and style.
+        return FontNameHeuristics.traits(ofFontNamed: name)
+        #endif
     }
 
     static func fontName(basedOn name: String, bold: Bool, italic: Bool) -> String? {
+        #if canImport(CoreText)
         let base = CTFontCreateWithName(name as CFString, 12, nil)
         var wanted: CTFontSymbolicTraits = []
         if bold { wanted.insert(.traitBold) }
@@ -174,6 +182,9 @@ public enum ThemeOverride {
             base, 0, nil, wanted, [.traitBold, .traitItalic]
         ) else { return nil }
         return CTFontCopyPostScriptName(derived) as String
+        #else
+        return FontNameHeuristics.fontName(basedOn: name, bold: bold, italic: italic)
+        #endif
     }
 }
 

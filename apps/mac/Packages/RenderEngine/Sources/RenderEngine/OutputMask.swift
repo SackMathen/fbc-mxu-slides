@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import Accelerate
 import CoreGraphics
 import Foundation
@@ -121,3 +122,4 @@ public enum OutputMaskRaster {
         pointer.update(from: scratch, count: count)
     }
 }
+#endif

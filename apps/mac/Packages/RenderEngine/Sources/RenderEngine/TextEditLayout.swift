@@ -1,3 +1,4 @@
+#if canImport(CoreText)
 import CoreGraphics
 import CoreText
 import Foundation
@@ -284,3 +285,4 @@ public struct TextEditLayout {
         }
     }
 }
+#endif

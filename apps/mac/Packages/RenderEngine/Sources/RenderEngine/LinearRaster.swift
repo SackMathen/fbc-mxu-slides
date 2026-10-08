@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import Accelerate
 import CoreGraphics
 import Metal
@@ -68,3 +69,4 @@ enum LinearRaster {
         return texture
     }
 }
+#endif

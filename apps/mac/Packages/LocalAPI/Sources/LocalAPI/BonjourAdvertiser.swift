@@ -1,11 +1,15 @@
 import Foundation
+#if canImport(dnssd)
 import dnssd
+#endif
 
 public final class BonjourAdvertiser: @unchecked Sendable {
     public static let serviceType = "_mxu-slides._tcp"
 
+    #if canImport(dnssd)
     private let queue = DispatchQueue(label: "localapi.bonjour")
     private var serviceRef: DNSServiceRef?
+    #endif
 
     public init() {}
 
@@ -13,6 +17,7 @@ public final class BonjourAdvertiser: @unchecked Sendable {
         stop()
     }
 
+    #if canImport(dnssd)
     public func start(name: String, port: UInt16) {
         stop()
         var ref: DNSServiceRef?
@@ -32,4 +37,12 @@ public final class BonjourAdvertiser: @unchecked Sendable {
             serviceRef = nil
         }
     }
+    #else
+    // TODO(windows): advertise over mDNS with the Win32 DnsServiceRegister API
+    // (windns.h, Windows 10 1809+). Until then the Local API is reachable by
+    // address and port but is not discoverable.
+    public func start(name: String, port: UInt16) {}
+
+    public func stop() {}
+    #endif
 }

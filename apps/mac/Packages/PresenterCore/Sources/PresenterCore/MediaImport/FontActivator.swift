@@ -1,6 +1,14 @@
-import CoreText
-import CryptoKit
 import Foundation
+#if canImport(CoreText)
+import CoreText
+#elseif os(Windows)
+import WinSDK
+#endif
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import PortableCrypto
+#endif
 
 @MainActor
 public enum FontActivator {
@@ -31,9 +39,17 @@ public enum FontActivator {
         return url
     }
 
+    /// Makes the font file available to this process (not installed system-wide).
     @discardableResult
     nonisolated public static func register(url: URL) -> Bool {
-        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        #if canImport(CoreText)
+        return CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        #elseif os(Windows)
+        let path = url.withUnsafeFileSystemRepresentation { $0.map { String(cString: $0) } } ?? url.path
+        return path.withCString(encodedAs: UTF16.self) { AddFontResourceExW($0, DWORD(FR_PRIVATE), nil) > 0 }
+        #else
+        return false
+        #endif
     }
 
     @discardableResult

@@ -1,0 +1,3 @@
+# Built by scripts/windows/build-automerge-ffi.ps1
+Libraries/
+rust/target/

@@ -1,6 +1,10 @@
 import Automerge
 import Foundation
+#if canImport(os)
 import os
+#else
+import PortableOS
+#endif
 import Testing
 
 @testable import PresenterCore

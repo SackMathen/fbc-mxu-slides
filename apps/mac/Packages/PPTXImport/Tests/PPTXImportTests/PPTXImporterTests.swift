@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import AppKit
 import Foundation
 import Testing
@@ -192,3 +193,4 @@ struct PPTXImporterTests {
         #expect(snapshot.area(kind: .presentation, id: deckID) == .team && snapshot.area(kind: .media, id: media.id) == .team)
     }
 }
+#endif

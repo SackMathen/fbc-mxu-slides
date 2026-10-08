@@ -1,6 +1,10 @@
 import Automerge
-import CryptoKit
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import PortableCrypto
+#endif
 
 public enum SyncLedger {
     public struct Key: Hashable, Sendable {

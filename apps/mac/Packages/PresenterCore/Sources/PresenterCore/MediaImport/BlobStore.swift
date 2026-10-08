@@ -1,5 +1,9 @@
-import CryptoKit
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import PortableCrypto
+#endif
 
 public struct BlobStore: Sendable {
     public let directory: URL
@@ -9,7 +13,7 @@ public struct BlobStore: Sendable {
         private var byStem: [String: URL]?
 
         private var absent: Set<String> = []
-        private var listedStamp: Stamp?
+        private var listedStamp: DocumentFileStamp?
 
         private var listings = 0
 
@@ -58,13 +62,13 @@ public struct BlobStore: Sendable {
         }
 
         private func listIfStale(_ directory: URL) {
-            if byStem == nil || Self.stamp(of: directory) != listedStamp {
+            if byStem == nil || DocumentFileStamp.of(directory) != listedStamp {
                 list(directory)
             }
         }
 
         private func list(_ directory: URL) {
-            listedStamp = Self.stamp(of: directory)
+            listedStamp = DocumentFileStamp.of(directory)
             byStem = Dictionary(
                 ((try? FileManager.default.contentsOfDirectory(
                     at: directory, includingPropertiesForKeys: nil
@@ -82,21 +86,6 @@ public struct BlobStore: Sendable {
                 if found == nil { absent.insert(hash) }
             }
             return found
-        }
-
-        private struct Stamp: Equatable {
-            var seconds: Int
-            var nanoseconds: Int
-        }
-
-        private static func stamp(of directory: URL) -> Stamp? {
-            var info = stat()
-            let status = directory.withUnsafeFileSystemRepresentation { path in
-                path.map { stat($0, &info) } ?? -1
-            }
-            return status == 0
-                ? Stamp(seconds: Int(info.st_mtimespec.tv_sec), nanoseconds: Int(info.st_mtimespec.tv_nsec))
-                : nil
         }
     }
 

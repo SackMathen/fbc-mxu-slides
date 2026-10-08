@@ -1,6 +1,8 @@
-import Darwin
 import Foundation
 import PresenterCore
+#if canImport(Darwin)
+import Darwin
+#endif
 
 var songCount = 1000
 var editCount = 200
@@ -94,11 +96,16 @@ func makeBigDeck() -> Presentation {
 }
 
 func physicalFootprint() -> Int64 {
+    #if canImport(Darwin)
     var usage = rusage_info_v4()
     let result = withUnsafeMutablePointer(to: &usage) {
         $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(getpid(), RUSAGE_INFO_V4, $0) }
     }
     return result == 0 ? Int64(usage.ri_phys_footprint) : 0
+    #else
+    // TODO(windows): report PrivateUsage from GetProcessMemoryInfo.
+    return 0
+    #endif
 }
 
 struct Samples {
@@ -358,9 +365,9 @@ do {
     let sustainedP95 = sustained.percentile(0.95)
     let pass = scopedP95 < gate && sustainedP95 < gate
     print(String(
-        format: "\nGATE edits apply <%.0fms: scoped p95 %.2fms, sustained p95 %.2fms → %@",
-        gate, scopedP95, sustainedP95, pass ? "PASS" : "FAIL"
-    ))
+        format: "\nGATE edits apply <%.0fms: scoped p95 %.2fms, sustained p95 %.2fms → ",
+        gate, scopedP95, sustainedP95
+    ) + (pass ? "PASS" : "FAIL"))
     cleanUp()
     exit(pass ? 0 : 1)
 } catch {

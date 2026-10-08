@@ -3,6 +3,18 @@ import Testing
 
 @testable import PresenterCore
 
+#if !canImport(Darwin)
+// Apple's Foundation adds `move(fromOffsets:toOffset:)`; corelibs Foundation does not.
+extension MutableCollection where Self: RangeReplaceableCollection, Index == Int {
+    fileprivate mutating func move(fromOffsets source: IndexSet, toOffset destination: Int) {
+        let moving = source.map { self[$0] }
+        let removedBeforeDestination = source.filter { $0 < destination }.count
+        for index in source.reversed() { remove(at: index) }
+        insert(contentsOf: moving, at: destination - removedBeforeDestination)
+    }
+}
+#endif
+
 @Suite struct ServiceVersionsTests {
     private func row(_ id: String, ref: String = "", hex: String? = nil) -> ServiceItem {
         ServiceItem(id: id, itemKind: .presentation, name: id, refId: ref, mxuItemHexId: hex)

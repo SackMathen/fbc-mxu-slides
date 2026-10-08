@@ -1,5 +1,9 @@
 import Foundation
+#if canImport(os)
 import os
+#else
+import PortableOS
+#endif
 
 public struct LibraryCacheLimits: Sendable, Equatable {
     public var replicasPerKind: Int

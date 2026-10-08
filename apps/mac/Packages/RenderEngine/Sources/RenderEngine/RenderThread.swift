@@ -1,24 +1,8 @@
+#if canImport(QuartzCore)
 import Foundation
 import QuartzCore
 
-public final class Locked<Value>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storage: Value
-
-    public init(_ value: Value) {
-        storage = value
-    }
-
-    public var value: Value {
-        get { lock.withLock { storage } }
-        set { lock.withLock { storage = newValue } }
-    }
-
-    @discardableResult
-    public func withLock<T>(_ body: (inout Value) throws -> T) rethrows -> T {
-        try lock.withLock { try body(&storage) }
-    }
-}
+// `Locked` lives in Locked.swift so the platform-neutral files can use it.
 
 public final class RenderThread: @unchecked Sendable {
     public static let shared = RenderThread()
@@ -68,3 +52,4 @@ public final class RenderThread: @unchecked Sendable {
         CFRunLoopWakeUp(runLoop.getCFRunLoop())
     }
 }
+#endif

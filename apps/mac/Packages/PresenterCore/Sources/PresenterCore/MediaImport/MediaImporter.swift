@@ -1,8 +1,9 @@
+import Foundation
+#if canImport(AVFoundation)
 import AVFoundation
 import CoreGraphics
-import Foundation
 import ImageIO
-import UniformTypeIdentifiers
+#endif
 
 @MainActor
 public struct MediaImporter {
@@ -16,7 +17,8 @@ public struct MediaImporter {
         public let outcome: Outcome
     }
 
-    static let playableCodecs: Set<CMVideoCodecType> = [
+    #if canImport(AVFoundation)
+    nonisolated static let playableCodecs: Set<CMVideoCodecType> = [
         kCMVideoCodecType_H264,
         kCMVideoCodecType_HEVC,
         kCMVideoCodecType_HEVCWithAlpha,
@@ -24,6 +26,7 @@ public struct MediaImporter {
         kCMVideoCodecType_AppleProRes422LT, kCMVideoCodecType_AppleProRes422Proxy,
         kCMVideoCodecType_AppleProRes4444, kCMVideoCodecType_AppleProRes4444XQ,
     ]
+    #endif
 
     private let client: LibraryClient
     private let blobs: BlobStore
@@ -45,7 +48,7 @@ public struct MediaImporter {
         urls.flatMap { url -> [URL] in
             var isDirectory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
-                return [url]  
+                return [url]
             }
             guard isDirectory.boolValue else { return [url] }
             let children = (try? FileManager.default.contentsOfDirectory(
@@ -59,27 +62,24 @@ public struct MediaImporter {
         guard FileManager.default.isReadableFile(atPath: url.path) else {
             return Result(fileURL: url, outcome: .skipped(reason: "unreadable file"))
         }
-        let type = UTType(filenameExtension: url.pathExtension) ?? .data
         do {
-            if type.conforms(to: .image) {
+            switch MediaFileKind.of(url: url) {
+            case .image:
                 return Result(fileURL: url, outcome: try await importImage(url, placement: placement))
-            }
-            if type.conforms(to: .audio) {
+            case .audio:
                 return Result(fileURL: url, outcome: try await importAudio(url, placement: placement))
-            }
-            if type.conforms(to: .movie) || type.conforms(to: .video) {
+            case .video:
                 return Result(fileURL: url, outcome: try await importVideo(url, placement: placement))
+            case .other(let identifier):
+                return Result(fileURL: url, outcome: .skipped(reason: "not a media file (\(identifier))"))
             }
-            return Result(fileURL: url, outcome: .skipped(reason: "not a media file (\(type.identifier))"))
         } catch {
             return Result(fileURL: url, outcome: .skipped(reason: String(describing: error)))
         }
     }
 
     private func importImage(_ url: URL, placement: LibraryHome.Placement) async throws -> Result.Outcome {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-        else {
+        guard let dimensions = Self.imageDimensions(at: url) else {
             return .skipped(reason: "unreadable image")
         }
         let hash = try await storeBlob(url)
@@ -94,8 +94,8 @@ public struct MediaImporter {
             statusDetail: "",
             tags: [], favorite: false, collections: [], loops: false,
             inPoint: nil, outPoint: nil, durationSeconds: nil,
-            pixelWidth: properties[kCGImagePropertyPixelWidth] as? Int,
-            pixelHeight: properties[kCGImagePropertyPixelHeight] as? Int
+            pixelWidth: dimensions.width,
+            pixelHeight: dimensions.height
         )
         item.folder = placement.folder(for: .media)
         _ = try await client.create(item, area: placement.area(for: .media)).value
@@ -103,8 +103,7 @@ public struct MediaImporter {
     }
 
     private func importAudio(_ url: URL, placement: LibraryHome.Placement) async throws -> Result.Outcome {
-        let asset = AVURLAsset(url: url)
-        let duration = try? await asset.load(.duration).seconds
+        let duration = await Self.audioDuration(at: url)
         let hash = try await storeBlob(url)
         var item = AudioItem(
             id: UUID().uuidString,
@@ -120,8 +119,7 @@ public struct MediaImporter {
     }
 
     private func importVideo(_ url: URL, placement: LibraryHome.Placement) async throws -> Result.Outcome {
-        let asset = AVURLAsset(url: url)
-        let probe = await Self.probeVideo(asset)
+        let probe = await Self.probeVideo(url: url)
         let hash = try await storeBlob(url)
         var item = MediaItem(
             id: UUID().uuidString,
@@ -158,7 +156,40 @@ public struct MediaImporter {
         var height: Int?
     }
 
-    static func probeVideo(_ asset: AVURLAsset) async -> VideoProbe {
+    /// The pixel size of an image file, or nil when it cannot be read as an image.
+    /// Either dimension may be nil when the file decodes but does not report it.
+    nonisolated static func imageDimensions(at url: URL) -> (width: Int?, height: Int?)? {
+        #if canImport(ImageIO)
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        else { return nil }
+        return (properties[kCGImagePropertyPixelWidth] as? Int, properties[kCGImagePropertyPixelHeight] as? Int)
+        #else
+        // TODO(windows): decode through Windows Imaging Component for the formats
+        // the header probe does not cover (HEIC, TIFF, AVIF); until then those
+        // import without a pixel size rather than being refused.
+        if let probe = ImageHeaderProbe.probe(url: url) {
+            return (probe.width, probe.height)
+        }
+        return (nil, nil)
+        #endif
+    }
+
+    nonisolated static func audioDuration(at url: URL) async -> Double? {
+        #if canImport(AVFoundation)
+        return try? await AVURLAsset(url: url).load(.duration).seconds
+        #else
+        // TODO(windows): read the duration with Media Foundation (IMFSourceReader).
+        return nil
+        #endif
+    }
+
+    #if canImport(AVFoundation)
+    nonisolated static func probeVideo(url: URL) async -> VideoProbe {
+        await probeVideo(AVURLAsset(url: url))
+    }
+
+    nonisolated static func probeVideo(_ asset: AVURLAsset) async -> VideoProbe {
         do {
             guard let track = try await asset.loadTracks(withMediaType: .video).first else {
                 return VideoProbe(status: .needsTranscode, detail: "no video track", duration: nil, width: nil, height: nil)
@@ -184,8 +215,19 @@ public struct MediaImporter {
         }
     }
 
-    static func fourCC(_ code: CMVideoCodecType) -> String {
+    nonisolated static func fourCC(_ code: CMVideoCodecType) -> String {
         let bytes = [24, 16, 8, 0].map { UInt8((code >> $0) & 0xFF) }
         return String(bytes: bytes, encoding: .ascii) ?? String(code)
     }
+    #else
+    nonisolated static func probeVideo(url: URL) async -> VideoProbe {
+        // TODO(windows): probe with Media Foundation for duration, size and codec,
+        // and decide playability against the Windows playback path.
+        VideoProbe(
+            status: .needsTranscode,
+            detail: "video probing is not available on \(BuildIdentity.platformName) yet",
+            duration: nil, width: nil, height: nil
+        )
+    }
+    #endif
 }

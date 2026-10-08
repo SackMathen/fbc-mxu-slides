@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import Foundation
 import Metal
 import Testing
@@ -170,3 +171,4 @@ struct StarterPackRenderTests {
         #expect(ink(settled, nameRow) > 40, "the name is on the plate once settled")
     }
 }
+#endif

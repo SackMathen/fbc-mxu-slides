@@ -28,6 +28,14 @@ if ProcessInfo.processInfo.environment["LOCAL_BUILD"] != nil {
     )
 }
 
+// On Windows the Rust FFI is a static library built from ./rust by
+// scripts/windows/build-automerge-ffi.ps1 into Libraries/windows-x86_64. The
+// `_CAutomergeUniffi` system library supplies the header; the linker settings
+// pull in that library plus the system libraries rustc reports for it
+// (`cargo rustc -- --print native-static-libs`).
+let windowsLibraryDirectory = Context.packageDirectory + "/Libraries/windows-x86_64"
+let windowsLinkLibraries = ["uniffi_automerge", "kernel32", "ntdll", "userenv", "ws2_32", "dbghelp"]
+
 let package = Package(
     name: "Automerge",
     platforms: [.iOS(.v13), .macOS(.v10_15), .visionOS(.v1)],
@@ -44,9 +52,12 @@ let package = Package(
                     .iOS, .macOS, .macCatalyst, .tvOS, .watchOS, .visionOS,
                 ])),
 
-                .target(name: "_CAutomergeUniffi", condition: .when(platforms: [.wasi, .linux])),
+                .target(name: "_CAutomergeUniffi", condition: .when(platforms: [.wasi, .linux, .windows])),
             ],
-            path: "./AutomergeUniffi"
+            path: "./AutomergeUniffi",
+            linkerSettings: [
+                .unsafeFlags(["-L", windowsLibraryDirectory], .when(platforms: [.windows]))
+            ] + windowsLinkLibraries.map { .linkedLibrary($0, .when(platforms: [.windows])) }
         ),
         .systemLibrary(name: "_CAutomergeUniffi"),
         .target(

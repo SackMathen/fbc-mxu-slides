@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import Foundation
 
 public struct LiveCadence: Equatable, Sendable {
@@ -22,3 +23,4 @@ extension RenderScene {
         layers.filter { !$0.isHidden }.flatMap { $0.items.compactMap(\.content.mediaID) }
     }
 }
+#endif

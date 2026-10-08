@@ -1,4 +1,3 @@
-import AVFoundation
 import Foundation
 
 public enum RecordingLibrary {
@@ -22,7 +21,7 @@ public enum RecordingLibrary {
         alsoCopyTo exportFolder: URL? = nil
     ) async throws -> MediaItem {
         let blobs = try BlobStore(libraryRoot: client.rootURL)
-        let probe = await MediaImporter.probeVideo(AVURLAsset(url: fileURL))
+        let probe = await MediaImporter.probeVideo(url: fileURL)
         let fileName = fileURL.lastPathComponent
         let hash = try await Task.detached(priority: .userInitiated) {
             let hash = try blobs.adopt(fileURL: fileURL)

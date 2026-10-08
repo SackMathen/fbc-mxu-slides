@@ -1,7 +1,4 @@
-import AVFoundation
 import Foundation
-import ImageIO
-import UniformTypeIdentifiers
 
 public enum MediaRelink {
 
@@ -15,27 +12,25 @@ public enum MediaRelink {
     }
 
     public static func probe(url: URL) async -> Probe? {
-        let type = UTType(filenameExtension: url.pathExtension) ?? .data
-        if type.conforms(to: .image) {
-            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-                  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-            else { return nil }
+        switch MediaFileKind.of(url: url) {
+        case .image:
+            guard let dimensions = MediaImporter.imageDimensions(at: url) else { return nil }
             return Probe(
                 mediaKind: .image, fileStatus: .ready, statusDetail: "",
                 durationSeconds: nil,
-                pixelWidth: properties[kCGImagePropertyPixelWidth] as? Int,
-                pixelHeight: properties[kCGImagePropertyPixelHeight] as? Int
+                pixelWidth: dimensions.width,
+                pixelHeight: dimensions.height
             )
-        }
-        if type.conforms(to: .movie) || type.conforms(to: .video) {
-            let probe = await MediaImporter.probeVideo(AVURLAsset(url: url))
+        case .video:
+            let probe = await MediaImporter.probeVideo(url: url)
             return Probe(
                 mediaKind: .video, fileStatus: probe.status, statusDetail: probe.detail,
                 durationSeconds: probe.duration,
                 pixelWidth: probe.width, pixelHeight: probe.height
             )
+        case .audio, .other:
+            return nil
         }
-        return nil
     }
 
     public static func restored(tombstone: MediaItem, hash: String, fileURL: URL, probe: Probe) -> MediaItem {

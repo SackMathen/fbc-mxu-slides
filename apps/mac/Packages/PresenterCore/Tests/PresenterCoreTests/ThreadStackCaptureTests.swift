@@ -1,3 +1,4 @@
+#if canImport(Darwin)
 import Darwin
 import Foundation
 import Synchronization
@@ -118,3 +119,4 @@ private func spawn(_ body: @escaping @Sendable (DispatchSemaphore) -> Void) thro
         #expect(ThreadStackCapture.symbolicate(caller).count == 2, "LR outside the leaf is its caller")
     }
 }
+#endif

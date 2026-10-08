@@ -1,3 +1,4 @@
+#if canImport(Metal)
 import Metal
 import QuartzCore
 import simd
@@ -38,3 +39,4 @@ public protocol MediaTextureSource: AnyObject, Sendable {
 
     func liveCadence(for mediaID: String) -> LiveCadence?
 }
+#endif

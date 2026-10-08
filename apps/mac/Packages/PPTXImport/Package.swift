@@ -11,12 +11,14 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../PresenterCore"),
+        .package(path: "../PortableSupport"),
     ],
     targets: [
         .target(
             name: "PPTXImport",
             dependencies: [
                 "PresenterCore",
+                .product(name: "PortableCrypto", package: "PortableSupport", condition: .when(platforms: [.windows, .linux])),
             ]
         ),
         .testTarget(name: "PPTXImportTests", dependencies: ["PPTXImport"]),

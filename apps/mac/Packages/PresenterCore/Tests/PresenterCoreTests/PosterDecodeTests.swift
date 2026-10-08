@@ -1,3 +1,4 @@
+#if canImport(ImageIO)
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -67,3 +68,4 @@ import UniformTypeIdentifiers
         #expect(poster.width == PosterDecode.maxPixelSize && poster.height == PosterDecode.maxPixelSize / 2)
     }
 }
+#endif

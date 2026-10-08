@@ -1,5 +1,9 @@
-import CryptoKit
 import Foundation
+#if canImport(CryptoKit)
+import CryptoKit
+#else
+import PortableCrypto
+#endif
 import PresenterCore
 
 @MainActor

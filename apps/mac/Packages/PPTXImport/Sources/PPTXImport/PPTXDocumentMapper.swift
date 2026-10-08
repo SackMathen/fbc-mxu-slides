@@ -1,6 +1,8 @@
-import AppKit
 import Foundation
 import PresenterCore
+#if canImport(AppKit)
+import AppKit
+#endif
 
 struct PPTXMappedDocument: Sendable {
     var presentation: Presentation
@@ -597,25 +599,26 @@ enum PPTXDocumentMapper {
         let cacheKey = "\(family)|\(run.bold)|\(run.italic)"
         if let cached = state.fontNameCache[cacheKey] { return cached }
 
+        let resolved: String
+        #if canImport(AppKit)
         var traits: NSFontDescriptor.SymbolicTraits = []
         if run.bold { traits.insert(.bold) }
         if run.italic { traits.insert(.italic) }
         var descriptor = NSFontDescriptor(fontAttributes: [.family: family])
         if !traits.isEmpty { descriptor = descriptor.withSymbolicTraits(traits) }
-        let resolved: String
         if let matched = descriptor.matchingFontDescriptor(withMandatoryKeys: [.family]),
            let name = matched.object(forKey: .name) as? String {
             resolved = name
         } else {
             state.warn("font \"\(family)\" is not installed — imported by name")
             if !state.missingFonts.contains(family) { state.missingFonts.append(family) }
-            switch (run.bold, run.italic) {
-            case (false, false): resolved = family
-            case (true, false): resolved = family + "-Bold"
-            case (false, true): resolved = family + "-Italic"
-            case (true, true): resolved = family + "-BoldItalic"
-            }
+            resolved = FontNameHeuristics.name(family: family, bold: run.bold, italic: run.italic)
         }
+        #else
+        // TODO(windows): match installed families through DirectWrite
+        // (IDWriteFontCollection) and report the missing ones like the Mac does.
+        resolved = FontNameHeuristics.name(family: family, bold: run.bold, italic: run.italic)
+        #endif
         state.fontNameCache[cacheKey] = resolved
         return resolved
     }

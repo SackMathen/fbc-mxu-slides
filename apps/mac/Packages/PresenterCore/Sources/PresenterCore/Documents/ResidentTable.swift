@@ -1,4 +1,3 @@
-import Darwin
 import Foundation
 
 public struct DocumentFileStamp: Equatable, Sendable {
@@ -12,22 +11,8 @@ public struct DocumentFileStamp: Equatable, Sendable {
         self.modifiedNanoseconds = modifiedNanoseconds
     }
 
-    public static func of(_ url: URL) -> DocumentFileStamp? {
-        var info = stat()
-        let found = url.withUnsafeFileSystemRepresentation { path in
-            path.map { stat($0, &info) == 0 } ?? false
-        }
-        if found {
-            return DocumentFileStamp(
-                inode: UInt64(info.st_ino),
-                size: Int64(info.st_size),
-                modifiedNanoseconds: Int64(info.st_mtimespec.tv_sec) * 1_000_000_000
-                    + Int64(info.st_mtimespec.tv_nsec)
-            )
-        } else {
-            return nil
-        }
-    }
+    // `of(_:)` lives in DocumentFileStamp+Platform.swift: it reads the file
+    // identity and modification time with the platform's native call.
 }
 
 public struct ResidentTableFill<Value: Sendable>: Sendable {
