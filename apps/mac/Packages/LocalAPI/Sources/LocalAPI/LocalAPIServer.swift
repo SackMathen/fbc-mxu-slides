@@ -1,4 +1,5 @@
 import FlyingFox
+import FlyingSocks
 import Foundation
 
 public final class LocalAPIServer: @unchecked Sendable {
@@ -8,12 +9,17 @@ public final class LocalAPIServer: @unchecked Sendable {
         public var serviceName: String
         public var advertise: Bool
         public var info: APIServerInfo
+        /// Drops the HTTP library's own log lines (one per connection and
+        /// request). On the Mac those go to the unified log; on a console
+        /// host they would flood stdout.
+        public var quietLogging: Bool
 
-        public init(port: UInt16, serviceName: String, advertise: Bool, info: APIServerInfo) {
+        public init(port: UInt16, serviceName: String, advertise: Bool, info: APIServerInfo, quietLogging: Bool = false) {
             self.port = port
             self.serviceName = serviceName
             self.advertise = advertise
             self.info = info
+            self.quietLogging = quietLogging
         }
     }
 
@@ -29,7 +35,20 @@ public final class LocalAPIServer: @unchecked Sendable {
         self.configuration = configuration
         self.router = APIRouter(routes: routes)
         self.tokens = tokens
-        self.http = HTTPServer(port: configuration.port)
+        self.http = HTTPServer(
+            port: configuration.port,
+            logger: configuration.quietLogging ? SilentHTTPLogger() : HTTPServer.defaultLogger()
+        )
+    }
+
+    /// A FlyingFox logger that drops everything; its own `DisabledLogger` has no public initializer.
+    public struct SilentHTTPLogger: Logging {
+        public init() {}
+        public func logDebug(_ debug: @autoclosure () -> String) {}
+        public func logInfo(_ info: @autoclosure () -> String) {}
+        public func logWarning(_ warning: @autoclosure () -> String) {}
+        public func logError(_ error: @autoclosure () -> String) {}
+        public func logCritical(_ critical: @autoclosure () -> String) {}
     }
 
     public func run() async throws {

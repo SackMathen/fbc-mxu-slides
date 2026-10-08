@@ -14,7 +14,9 @@ struct Options {
     var apiPort: UInt16 = 6980
     var serveAPI = true
     var openBrowser = true
+    var nativeWindow = true
     var installDemo = false
+    var verbose = false
 
     init(arguments: [String]) throws {
         var iterator = arguments.dropFirst().makeIterator()
@@ -33,8 +35,10 @@ struct Options {
                 guard let value = iterator.next(), let port = UInt16(value) else { throw UsageError("--api-port needs a number") }
                 apiPort = port
             case "--no-api": serveAPI = false
-            case "--no-browser": openBrowser = false
+            case "--no-browser": openBrowser = false; nativeWindow = false
+            case "--browser": nativeWindow = false
             case "--demo": installDemo = true
+            case "--verbose": verbose = true
             case "--help", "-h":
                 throw UsageError(nil)
             default:
@@ -50,20 +54,29 @@ struct UsageError: Error {
 }
 
 let usage = """
-    mxu-slides [--library <path>] [--web <path>] [--port 6981] [--api-port 6980] [--no-api] [--no-browser] [--demo]
+    mxu-slides [--library <path>] [--web <path>] [--port 6981] [--api-port 6980]
+               [--no-api] [--browser] [--no-browser] [--demo] [--verbose]
 
       --library    the library folder (default: %LOCALAPPDATA%\\MxU Slides\\Library)
       --web        the folder with index.html (default: found next to the executable or the sources)
       --port       the port the app's own UI listens on, loopback only (default 6981)
       --api-port   the Local API port for remotes (default 6980)
       --no-api     do not start the Local API
-      --no-browser do not open the UI window
+      --browser    open the UI in Microsoft Edge (app mode) instead of the app's own window
+      --no-browser do not open any window; just serve
       --demo       add a starter theme, four hymns and a service if the library is empty
+      --verbose    log every HTTP connection and request
     """
 
 func log(_ message: String) {
     print(message)
     fflush(stdout)
+}
+
+/// Set once the window closes, so the servers' stop errors are not reported as failures.
+@MainActor
+final class HostLifecycle {
+    var isShuttingDown = false
 }
 
 @MainActor
@@ -76,6 +89,7 @@ func runHost(_ options: Options) async throws {
     log("MxU Slides for Windows")
     log("  library  \(options.libraryRoot.path)")
     log("  web      \(webRoot.path)")
+    let lifecycle = HostLifecycle()
 
     let model = HostModel(rootURL: options.libraryRoot)
     try await model.start()
@@ -102,7 +116,7 @@ func runHost(_ options: Options) async throws {
         )
         let bridge = HostAPIBridge(model: model)
         let server = LocalAPIServer(
-            configuration: .init(port: options.apiPort, serviceName: info.name, advertise: true, info: info),
+            configuration: .init(port: options.apiPort, serviceName: info.name, advertise: true, info: info, quietLogging: !options.verbose),
             routes: APIRouteTable.build(bridge: bridge),
             tokens: tokens
         )
@@ -111,7 +125,9 @@ func runHost(_ options: Options) async throws {
             do {
                 try await server.run()
             } catch {
-                log("  local api failed: \(error)")
+                if !lifecycle.isShuttingDown {
+                    log("  local api failed: \(error)")
+                }
             }
         }
         log("  api      http://localhost:\(options.apiPort)/docs")
@@ -120,13 +136,29 @@ func runHost(_ options: Options) async throws {
         }
     }
 
-    let ui = try UIServer(model: model, webRoot: webRoot, port: options.uiPort, localAPIPort: options.serveAPI ? Int(options.apiPort) : nil)
+    let ui = try UIServer(
+        model: model, webRoot: webRoot, port: options.uiPort,
+        localAPIPort: options.serveAPI ? Int(options.apiPort) : nil,
+        verbose: options.verbose
+    )
     let uiTask = Task {
         try await ui.run()
     }
     try await ui.waitUntilListening()
     log("  ui       \(ui.url)")
-    if options.openBrowser {
+
+    var windowTask: Task<NativeWindow.Outcome, Never>?
+    if options.nativeWindow, NativeWindow.isAvailable {
+        let userData = options.libraryRoot.deletingLastPathComponent().appendingPathComponent("WebView2", isDirectory: true)
+        let url = ui.url
+        windowTask = Task {
+            await NativeWindow.run(url: url, title: "MxU Slides", userDataFolder: userData)
+        }
+        log("  window   MxU Slides (WebView2)")
+    } else if options.openBrowser {
+        if options.nativeWindow {
+            log("  window   the WebView2 runtime is not installed; falling back to Microsoft Edge")
+        }
         if BrowserLauncher.open(url: ui.url) {
             log("  window   opened in Microsoft Edge (app mode)")
         } else {
@@ -134,8 +166,26 @@ func runHost(_ options: Options) async throws {
         }
     }
     log("Press Ctrl+C to quit.")
-    try await uiTask.value
-    await apiServer?.stop()
+
+    if let windowTask {
+        let outcome = await windowTask.value
+        switch outcome {
+        case .closed:
+            log("Window closed.")
+        case .runtimeMissing, .browserFailed, .windowFailed, .unavailable:
+            log("  window   could not open the app window (\(outcome)); the UI is still at \(ui.url)")
+            if options.openBrowser { _ = BrowserLauncher.open(url: ui.url) }
+            try await uiTask.value
+        }
+        lifecycle.isShuttingDown = true
+        await ui.stop()
+        await apiServer?.stop()
+        uiTask.cancel()
+        _ = try? await uiTask.value
+    } else {
+        try await uiTask.value
+        await apiServer?.stop()
+    }
 }
 
 do {

@@ -1,9 +1,8 @@
 import Foundation
 
-/// Opens the UI in an Edge app window (no tabs, no address bar) until the
-/// host has its own window.
-///
-/// TODO(windows): host a WebView2 control in a native window instead.
+/// Opens the UI in an Edge app window (no tabs, no address bar). The app's own
+/// window is `NativeWindow`; this is the `--browser` option and the fallback
+/// when the WebView2 runtime is missing.
 public enum BrowserLauncher {
 
     public static func edgeExecutable() -> URL? {

@@ -1,6 +1,7 @@
 import FlyingFox
 import FlyingSocks
 import Foundation
+import LocalAPI
 import PresenterCore
 import RenderEngine
 import SlideScene
@@ -20,13 +21,17 @@ public final class UIServer: @unchecked Sendable {
     private let localAPIPort: Int?
     private let server: HTTPServer
 
-    public init(model: HostModel, webRoot: URL, port: UInt16, localAPIPort: Int?) throws {
+    /// `verbose` keeps the HTTP library's per-request log lines.
+    public init(model: HostModel, webRoot: URL, port: UInt16, localAPIPort: Int?, verbose: Bool = false) throws {
         self.model = model
         self.webRoot = webRoot
         self.port = port
         self.localAPIPort = localAPIPort
         // IPv4 loopback only: the page, the output window and the launcher all use 127.0.0.1.
-        self.server = HTTPServer(address: try sockaddr_in.inet(ip4: "127.0.0.1", port: port))
+        self.server = HTTPServer(
+            address: try sockaddr_in.inet(ip4: "127.0.0.1", port: port),
+            logger: verbose ? HTTPServer.defaultLogger(category: "ui") : LocalAPIServer.SilentHTTPLogger()
+        )
     }
 
     public var url: String { "http://127.0.0.1:\(port)/" }

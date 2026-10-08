@@ -15,6 +15,9 @@ if (-not (Test-Path (Join-Path $ffi 'Libraries\windows-x86_64\uniffi_automerge.l
     Write-Host 'Building the Automerge native library first (one time)...'
     & (Join-Path $PSScriptRoot 'build-automerge-ffi.ps1')
 }
+if (-not (Test-Path (Join-Path $package 'Vendor\WebView2\include\WebView2.h'))) {
+    & (Join-Path $PSScriptRoot 'fetch-webview2.ps1')
+}
 
 Push-Location $package
 try {

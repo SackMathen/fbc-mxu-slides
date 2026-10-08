@@ -18,6 +18,7 @@ let package = Package(
             name: "LocalAPI",
             dependencies: [
                 .product(name: "FlyingFox", package: "FlyingFox"),
+                .product(name: "FlyingSocks", package: "FlyingFox"),
                 .product(name: "PortableCrypto", package: "PortableSupport", condition: .when(platforms: [.windows, .linux])),
             ],
             resources: [
