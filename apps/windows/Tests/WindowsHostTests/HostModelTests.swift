@@ -74,8 +74,10 @@ import Testing
         // Lyric imports open on a blank slide, so the first verse is the second slide.
         let listing = UIModels.presentation(song, arrangementId: nil)
         #expect(listing.slides.count == slides.count)
-        let firstVerse = try #require(listing.slides.first { $0.label.contains("Amazing grace") })
+        let firstVerse = try #require(listing.slides.first { $0.text.contains("Amazing grace") })
         #expect(firstVerse.index == 1)
+        // Lyric slides have no name of their own, so the grid caption is just the number (as on the Mac).
+        #expect(firstVerse.label.isEmpty)
 
         let scene = model.scene(for: slides[firstVerse.index], in: song, arrangementId: nil)
         let encoded = try SceneJSON.encode(scene, hostTime: SceneJSON.settledHostTime)

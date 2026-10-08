@@ -456,8 +456,9 @@
       tile.appendChild(frame);
       const label = document.createElement('div');
       label.className = 'tile-label';
-      label.innerHTML = `<span class="num">${slide.index + 1}</span>${slide.label ? `<span class="text" title="${escape(slide.label)}">${escape(slide.label.slice(0, 30))}</span>` : ''}`;
+      label.innerHTML = `<span class="num">${slide.index + 1}</span>${slide.label ? `<span class="text">${escape(slide.label.slice(0, 30))}</span>` : ''}`;
       tile.appendChild(label);
+      tile.title = slide.label || slide.text || '';
       tile.addEventListener('click', () => fire(listing.id, slide.index, context.contextId, listing.arrangementId));
       grid.appendChild(tile);
     });
@@ -733,15 +734,42 @@
     body.insertAdjacentHTML('beforeend', '<div class="module-note">Saved alerts and alert folders come to Windows later.</div>');
   }
 
+  // OutputsModule: each display gets the audience output as a borderless,
+  // full-screen window; the host's own window opens and closes them.
   function renderOutputsModule(body, state) {
-    body.insertAdjacentHTML('beforeend', '<div class="module-section">Screens</div><div class="module-note">Open the output in its own window and drag it to the projector or second display. Double-click it for full screen.</div>');
+    body.insertAdjacentHTML('beforeend', '<div class="module-section">Screens</div>');
+    if (state.nativeWindow && state.displays.length) {
+      for (const display of state.displays) {
+        const output = state.outputs.find(o => o.display === display.index);
+        const row = document.createElement('div');
+        row.className = 'rack-row' + (output ? ' live' : '');
+        row.innerHTML = `<span class="kind-glyph">${G.screens}</span><span class="name" title="${display.width} × ${display.height} at ${display.x}, ${display.y}">${escape(display.name)}${display.isPrimary ? ' · main' : ''}</span><button class="rack-chip shown">${output ? 'Close' : 'Send Output'}</button>`;
+        row.querySelector('.rack-chip').addEventListener('click', async (event) => {
+          event.stopPropagation();
+          try { await api.post('/ui/v1/output', output ? { action: 'close', id: output.id } : { action: 'open', display: display.index }); await refresh(true); }
+          catch (error) { toast(error.message); }
+        });
+        body.appendChild(row);
+      }
+      body.insertAdjacentHTML('beforeend', '<div class="module-note">The output fills the display and stays above other windows there. On the display with this window it stays behind the app so you can get back.</div>');
+    } else {
+      body.insertAdjacentHTML('beforeend', '<div class="module-note">Open the output in its own window and drag it to the projector or second display. Double-click it for full screen.</div>');
+    }
     const open = document.createElement('button');
     open.className = 'card-button wide';
-    open.textContent = 'Open Output Window';
+    open.textContent = 'Open Output in a Window';
     open.addEventListener('click', openOutputWindow);
     body.appendChild(open);
     body.insertAdjacentHTML('beforeend', '<div class="module-note">Screen roles, NDI, DeckLink and output presets are not on Windows yet.</div>');
     if (state.localAPIPort) body.insertAdjacentHTML('beforeend', `<div class="module-section">Local API</div><div class="module-note">Remotes connect on port ${state.localAPIPort}. The default key is printed in the console that started the app.</div>`);
+  }
+
+  function outputsKey(state) { return JSON.stringify([state.displays, state.outputs]); }
+
+  function renderPreviewTarget() {
+    const state = ui.state;
+    const primary = state.displays.find(d => d.isPrimary) || state.displays[0];
+    $('preview-target-name').textContent = primary ? primary.name : 'Audience';
   }
 
   function openOutputWindow() { window.open('/output', 'mxu-output', 'popup=yes,width=960,height=540'); }
@@ -901,7 +929,16 @@
 
     $('preview-target').addEventListener('click', (event) => popover(event.currentTarget, (pop) => {
       pop.insertAdjacentHTML('beforeend', '<div class="menu-section">Screens</div>');
-      menuRow(pop, 'Audience', { current: true });
+      const displays = ui.state.displays;
+      if (displays.length) {
+        const primary = displays.find(d => d.isPrimary) || displays[0];
+        for (const display of displays) {
+          const output = ui.state.outputs.find(o => o.display === display.index);
+          menuRow(pop, display.name + (output ? ' · live' : ''), { current: display === primary, action: () => { ui.module = 'outputs'; prefs.set('serviceControls.module', 'outputs'); renderModuleTabs(); renderModule(); } });
+        }
+      } else {
+        menuRow(pop, 'Audience', { current: true });
+      }
       pop.insertAdjacentHTML('beforeend', '<div class="menu-divider"></div>');
       menuRow(pop, 'Open in Window', { plain: true, action: openOutputWindow });
     }));
@@ -1010,8 +1047,13 @@
       const changed = force || first || state.version !== ui.state.version;
       const libraryChanged = first || Math.floor(state.version / 1000) !== Math.floor(ui.state.version / 1000);
       const serviceChanged = first || JSON.stringify(state.service) !== JSON.stringify(ui.state.service);
+      const outputsChanged = first || outputsKey(state) !== outputsKey(ui.state);
       ui.state = state;
       if (first) { loadCollapsed(); renderLibraryTabs(); renderModuleTabs(); }
+      if (outputsChanged) {
+        renderPreviewTarget();
+        if (!changed && ui.module === 'outputs') renderModule();
+      }
       if (changed) {
         if (serviceChanged) loadCollapsed();
         renderServiceHeader();

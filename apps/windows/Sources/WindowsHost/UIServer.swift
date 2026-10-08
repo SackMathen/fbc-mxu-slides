@@ -120,6 +120,10 @@ public final class UIServer: @unchecked Sendable {
                 let command = try await decode(AlertCommand.self, from: request)
                 await alert(command)
                 return Self.ok()
+            case ("POST", "output"):
+                let command = try await decode(OutputCommand.self, from: request)
+                try output(command)
+                return Self.ok()
             default:
                 return Self.json(["error": "No such endpoint."], status: .notFound)
             }
@@ -177,6 +181,12 @@ public final class UIServer: @unchecked Sendable {
         var behavior: String?
         var target: String?
         var dismiss: Bool?
+    }
+
+    struct OutputCommand: Decodable {
+        var action: String
+        var display: Int?
+        var id: Int?
     }
 
     private func decode<T: Decodable>(_ type: T.Type, from request: HTTPRequest) async throws -> T {
@@ -246,8 +256,37 @@ public final class UIServer: @unchecked Sendable {
             alert: showState.liveAlert.map {
                 UIState.Alert(id: $0.id, message: $0.message, behavior: $0.behavior.rawValue, target: $0.target.rawValue)
             },
-            sections: listed
+            sections: listed,
+            nativeWindow: NativeWindow.isRunning,
+            displays: NativeWindow.isRunning ? NativeWindow.displays() : [],
+            outputs: NativeWindow.isRunning ? NativeWindow.outputs() : []
         )
+    }
+
+    /// Opens or closes the output window on a display (the app's own window
+    /// must be running; the Edge fallback has no output windows).
+    private func output(_ command: OutputCommand) throws {
+        guard NativeWindow.isRunning else {
+            throw RequestError(status: .conflict, message: "Output windows need the app's own window; start without --browser.")
+        }
+        switch command.action {
+        case "open":
+            guard let display = command.display else { throw RequestError.badRequest("Which display?") }
+            guard NativeWindow.displays().indices.contains(display) else { throw RequestError.notFound("No display \(display).") }
+            guard NativeWindow.openOutput(url: url + "output", display: display) != nil else {
+                throw RequestError(status: .conflict, message: "The output window could not be opened.")
+            }
+        case "close":
+            if let id = command.id {
+                NativeWindow.closeOutput(id: id)
+            } else if let display = command.display {
+                for output in NativeWindow.outputs() where output.display == display { NativeWindow.closeOutput(id: output.id) }
+            } else {
+                for output in NativeWindow.outputs() { NativeWindow.closeOutput(id: output.id) }
+            }
+        default:
+            throw RequestError.badRequest("Unknown action '\(command.action)'.")
+        }
     }
 
     private func presentation(id: String, arrangementId: String?) async throws -> UIPresentation {

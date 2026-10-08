@@ -24,14 +24,15 @@ renders the output.
 - `--demo` seeds an empty library with a starter theme, its overlays, the
   welcome deck, four public-domain hymns and a service.
 
-Presenting works: pick a service, click a slide or use the arrow keys, open the
-output window from Service Controls › Outputs and drag it to the projector.
-Overlays and ad-hoc alerts fire.
+Presenting works: pick a service, click a slide or use the arrow keys. Service
+Controls › Outputs lists the attached displays by name; Send Output puts a
+borderless full-screen output window on one (it stays above other windows on
+that display). Overlays and ad-hoc alerts fire.
 
 Not on Windows yet (the Mac engines they need are Metal/AVFoundation-only):
-the editor, media and audio playback, timers, the scheduler, outputs beyond the
-browser window (NDI, DeckLink, screen roles), streaming and recording, MIDI,
-and ProPresenter/PowerPoint import from the UI.
+the editor, media and audio playback, timers, the scheduler, outputs beyond
+display windows (NDI, DeckLink, screen roles and presets), streaming and
+recording, MIDI, and ProPresenter/PowerPoint import from the UI.
 
 ## Build and run
 

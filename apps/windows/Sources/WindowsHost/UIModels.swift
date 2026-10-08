@@ -67,6 +67,10 @@ public struct UIState: Codable, Sendable {
     public var overlays: [Overlay]
     public var alert: Alert?
     public var sections: [String: [Entry]]
+    /// True when the app runs in its own window, so output windows can open on displays.
+    public var nativeWindow: Bool
+    public var displays: [NativeWindow.Display]
+    public var outputs: [NativeWindow.Output]
 }
 
 public struct UIPresentation: Codable, Sendable {
@@ -74,7 +78,10 @@ public struct UIPresentation: Codable, Sendable {
         public var id: String
         public var index: Int
         public var name: String
+        /// The grid caption after the number: the slide's own name, or empty.
         public var label: String
+        /// The first non-empty line of lyric text, for tooltips and search.
+        public var text: String
         public var sectionId: String?
         public var sectionName: String?
         public var sectionColorHex: String?
@@ -131,6 +138,7 @@ public enum UIModels {
                 }
                 return UIPresentation.Slide(
                     id: slide.id, index: index, name: slide.name, label: label,
+                    text: SlidePreview.line(for: slide),
                     sectionId: slide.sectionId, sectionName: section?.name, sectionColorHex: section?.colorHex,
                     hasBackgroundMedia: !(slide.background?.mediaId ?? "").isEmpty
                 )

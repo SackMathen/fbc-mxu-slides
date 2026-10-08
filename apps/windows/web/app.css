@@ -310,7 +310,9 @@ svg { display: block; }
 .rack-row.live { background: rgba(48, 209, 88, 0.12); }
 .rack-row.live .name { color: var(--green); }
 .rack-chip { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: var(--radius-element); font-size: var(--fs-caption2); font-weight: 500; color: var(--secondary); background: var(--card-raised); box-shadow: inset 0 0 0 1px var(--separator-50); white-space: nowrap; visibility: hidden; }
-.rack-row:hover .rack-chip, .rack-row.live .rack-chip { visibility: visible; }
+.rack-row:hover .rack-chip, .rack-row.live .rack-chip, .rack-chip.shown { visibility: visible; }
+.rack-row .kind-glyph { width: 12px; height: 12px; color: var(--secondary); flex: none; }
+.rack-row .kind-glyph svg { width: 12px; height: 12px; }
 .rack-row.live .rack-chip { color: var(--green); box-shadow: inset 0 0 0 1px rgba(48, 209, 88, 0.4); }
 .module-row { display: flex; align-items: center; gap: 8px; min-height: 26px; }
 .module-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
