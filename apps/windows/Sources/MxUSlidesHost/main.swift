@@ -89,8 +89,11 @@ func runHost(_ options: Options) async throws {
 
     var apiServer: LocalAPIServer?
     if options.serveAPI {
-        let tokens = APITokenStore(fileURL: options.libraryRoot.appendingPathComponent("local-api-tokens.json"))
-        let secret = tokens.ensureDefaultKey()
+        let tokens = APITokenStore(
+            fileURL: options.libraryRoot.appendingPathComponent("local-api-tokens.json"),
+            vault: WindowsKeyVault.vault(fileURL: options.libraryRoot.appendingPathComponent("local-api-default-key.bin"))
+        )
+        let secret = tokens.ensureDefaultKey(evenIfPopulated: tokens.defaultKeySecret == nil)
         let info = APIServerInfo(
             name: ProcessInfo.processInfo.hostName,
             product: "MxU Slides",
@@ -113,7 +116,7 @@ func runHost(_ options: Options) async throws {
         }
         log("  api      http://localhost:\(options.apiPort)/docs")
         if let secret {
-            log("  api key  \(secret)  (the default key; Settings on the Mac shows the same one)")
+            log("  api key  \(secret)  (the default key for remotes; sealed with DPAPI in the library folder)")
         }
     }
 

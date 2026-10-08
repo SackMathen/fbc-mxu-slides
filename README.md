@@ -18,6 +18,13 @@ What it does not allow:
 
 The full terms, including what happens if MxU later ships a product that competes with yours, are in [LICENSE.md](LICENSE.md).
 
+## Windows
+
+A Windows build lives in `apps/windows`: the same library, documents, show
+state, scene builder and Local API, with a host that serves the app's user
+interface and an output window. See [apps/windows/README.md](apps/windows/README.md)
+for the toolchain, how to build and run, and what is not on Windows yet.
+
 ## Getting started
 
 Requirements:

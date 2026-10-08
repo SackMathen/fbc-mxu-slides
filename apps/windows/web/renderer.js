@@ -99,6 +99,7 @@
 
     drawItem(ctx, item, mattes, scene) {
       const f = item.frame;
+      if ((item.opacity != null && item.opacity <= 0.001)) return;
       ctx.save();
       ctx.globalAlpha = item.opacity == null ? 1 : item.opacity;
       ctx.globalCompositeOperation = { multiply: 'multiply', screen: 'screen', add: 'lighter' }[item.blendMode] || 'source-over';
@@ -107,6 +108,39 @@
         ctx.beginPath();
         ctx.rect(m.x, m.y, m.width, m.height);
         ctx.clip();
+      }
+      const motion = item.motion;
+      if (motion) {
+        // Clip and wipe are fractions of the item's own frame.
+        if (motion.clip) {
+          const c = motion.clip;
+          ctx.beginPath();
+          ctx.rect(f.x + f.width * c.minU, f.y + f.height * c.minV, f.width * (c.maxU - c.minU), f.height * (c.maxV - c.minV));
+          ctx.clip();
+        }
+        if (motion.wipe) {
+          const w = motion.wipe;
+          const p = Math.min(Math.max(w.progress, 0), 1);
+          ctx.beginPath();
+          switch (w.edge) {
+            case 'right': ctx.rect(f.x + f.width * (1 - p), f.y, f.width * p, f.height); break;
+            case 'top': ctx.rect(f.x, f.y, f.width, f.height * p); break;
+            case 'bottom': ctx.rect(f.x, f.y + f.height * (1 - p), f.width, f.height * p); break;
+            default: ctx.rect(f.x, f.y, f.width * p, f.height);
+          }
+          ctx.clip();
+        }
+        const cx = f.x + f.width / 2, cy = f.y + f.height / 2;
+        ctx.translate(cx + (motion.dx || 0), cy + (motion.dy || 0));
+        const sx = motion.scale == null ? 1 : motion.scale;
+        const sy = motion.scaleY == null ? sx : motion.scaleY;
+        if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
+        if (motion.skewX || motion.skewY) {
+          const kx = Math.tan(Math.min(Math.max(motion.skewX || 0, -85), 85) * Math.PI / 180);
+          const ky = Math.tan(Math.min(Math.max(motion.skewY || 0, -85), 85) * Math.PI / 180);
+          ctx.transform(1, ky, -kx, 1, 0, 0);
+        }
+        ctx.translate(-cx, -cy);
       }
       if (item.rotationDegrees) {
         ctx.translate(f.x + f.width / 2, f.y + f.height / 2);

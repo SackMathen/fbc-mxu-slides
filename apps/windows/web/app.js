@@ -352,6 +352,34 @@
 
   // ---------- Preview and confidence ----------
 
+  let previewAnimating = false;
+
+  async function fetchPreviewScene() {
+    const scene = await api.get('/ui/v1/scene/live');
+    const canvas = $('preview-canvas');
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.round(Math.max(canvas.clientWidth, 200) * dpr);
+    if (canvas.width !== width) { canvas.width = width; canvas.height = Math.round(width * 9 / 16); }
+    ui.previewRenderer.draw(scene);
+    return scene;
+  }
+
+  // Builds and exits play on the host clock: while the live scene says it is
+  // still moving, keep asking for fresh frames.
+  async function animatePreview() {
+    if (previewAnimating) return;
+    previewAnimating = true;
+    const started = performance.now();
+    try {
+      while (performance.now() - started < 12000) {
+        const scene = await fetchPreviewScene();
+        if (!scene.timeVarying) break;
+        await new Promise(r => setTimeout(r, 66));
+      }
+    } catch (error) { /* keep the last frame */ }
+    finally { previewAnimating = false; }
+  }
+
   async function renderPreview(force) {
     if (!ui.previewRenderer) {
       ui.previewRenderer = new SceneRenderer($('preview-canvas'), { onMediaLoaded: () => {} });
@@ -359,12 +387,8 @@
     if (!force && ui.previewVersion === ui.state.version) return;
     ui.previewVersion = ui.state.version;
     try {
-      const scene = await api.get('/ui/v1/scene/live');
-      const canvas = $('preview-canvas');
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.round(Math.max(canvas.clientWidth, 200) * dpr);
-      canvas.height = Math.round(canvas.width * 9 / 16);
-      ui.previewRenderer.draw(scene);
+      const scene = await fetchPreviewScene();
+      if (scene.timeVarying) animatePreview();
     } catch (error) { /* keep the last frame */ }
     const live = ui.state.live;
     $('preview-badge').hidden = !live && !Object.keys(ui.state.mediaLayers).length && !ui.state.overlays.length;

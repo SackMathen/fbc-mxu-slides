@@ -296,12 +296,17 @@ public final class HostModel {
         state.scene()
     }
 
+    /// A slide as its thumbnail shows it: every build settled, exits and page
+    /// turns stripped (the Mac's "peak look").
     public func scene(for slide: Slide, in presentation: Presentation, arrangementId: String?) -> RenderScene {
-        SlideSceneBuilder.scene(
+        SlideSceneBuilder.peakLook(SlideSceneBuilder.scene(
             for: slide, theme: theme(presentation.themeId(for: slide)),
-            presentation: presentation, arrangementId: arrangementId
-        )
+            presentation: presentation, arrangementId: arrangementId,
+            animationContext: .settled
+        ))
     }
+
+    public var hostTime: Double { Self.hostTime }
 
     // MARK: Status
 

@@ -30,6 +30,9 @@ let package = Package(
                 .product(name: "LocalAPI", package: "LocalAPI"),
                 .product(name: "FlyingFox", package: "FlyingFox"),
                 .product(name: "FlyingSocks", package: "FlyingFox"),
+            ],
+            linkerSettings: [
+                .linkedLibrary("crypt32", .when(platforms: [.windows]))
             ]
         ),
         .executableTarget(

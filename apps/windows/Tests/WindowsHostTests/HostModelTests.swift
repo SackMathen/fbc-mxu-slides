@@ -78,7 +78,7 @@ import Testing
         #expect(firstVerse.index == 1)
 
         let scene = model.scene(for: slides[firstVerse.index], in: song, arrangementId: nil)
-        let encoded = try SceneJSON.encode(scene)
+        let encoded = try SceneJSON.encode(scene, hostTime: SceneJSON.settledHostTime)
         let decoded = try JSONDecoder().decode(SceneJSON.Scene.self, from: encoded)
         #expect(decoded.width == 1920 && decoded.height == 1080)
         let texts = decoded.layers.flatMap(\.items).compactMap(\.content.text)
@@ -102,8 +102,10 @@ import Testing
             ),
             to: .slide
         )
-        let decoded = try JSONDecoder().decode(SceneJSON.Scene.self, from: SceneJSON.encode(scene))
+        let decoded = try JSONDecoder().decode(SceneJSON.Scene.self, from: SceneJSON.encode(scene, hostTime: 10))
         let item = try #require(decoded.layers.first { $0.kind == "slide" }?.items.first)
+        #expect(item.motion == nil, "a static item carries no motion")
+        #expect(!decoded.timeVarying)
         #expect(item.content.type == "shape")
         #expect(item.content.shape?.kind == "roundedRectangle")
         #expect(item.content.shape?.cornerRadius == 12)

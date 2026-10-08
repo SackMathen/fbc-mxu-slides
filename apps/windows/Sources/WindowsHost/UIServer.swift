@@ -258,10 +258,11 @@ public final class UIServer: @unchecked Sendable {
         switch route[1] {
         case "live":
             let scene = await model.liveScene()
+            let now = await model.hostTime
             return HTTPResponse(
                 statusCode: .ok,
                 headers: [HTTPHeader("Content-Type"): "application/json", HTTPHeader("Cache-Control"): "no-store"],
-                body: try SceneJSON.encode(scene)
+                body: try SceneJSON.encode(scene, hostTime: now)
             )
         case "slide":
             guard route.count >= 4, let index = Int(route[3]) else {
@@ -279,7 +280,7 @@ public final class UIServer: @unchecked Sendable {
             return HTTPResponse(
                 statusCode: .ok,
                 headers: [HTTPHeader("Content-Type"): "application/json", HTTPHeader("Cache-Control"): "no-store"],
-                body: try SceneJSON.encode(scene)
+                body: try SceneJSON.encode(scene, hostTime: SceneJSON.settledHostTime)
             )
         default:
             throw RequestError.notFound("No such scene.")

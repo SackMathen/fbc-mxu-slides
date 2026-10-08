@@ -31,18 +31,40 @@
   window.addEventListener('resize', fit);
   fit();
 
+  async function fetchScene() {
+    scene = await (await fetch('/ui/v1/scene/live', { cache: 'no-store' })).json();
+    renderer.draw(scene);
+    return scene;
+  }
+
+  let animating = false;
+  async function animate() {
+    if (animating) return;
+    animating = true;
+    const started = performance.now();
+    try {
+      // 30 fps while the scene is still moving (builds, exits, tickers).
+      while (performance.now() - started < 30000) {
+        const frame = await fetchScene();
+        if (!frame.timeVarying) break;
+        await new Promise(r => setTimeout(r, 33));
+      }
+    } catch (error) { /* keep the last frame */ }
+    finally { animating = false; }
+  }
+
   async function poll() {
     try {
       const state = await (await fetch('/ui/v1/state', { cache: 'no-store' })).json();
       if (state.version !== lastVersion) {
         lastVersion = state.version;
-        scene = await (await fetch('/ui/v1/scene/live', { cache: 'no-store' })).json();
-        renderer.draw(scene);
+        const frame = await fetchScene();
+        if (frame.timeVarying) animate();
       }
     } catch (error) {
       // the host is restarting; try again shortly
     }
-    setTimeout(poll, 200);
+    setTimeout(poll, 150);
   }
   poll();
 

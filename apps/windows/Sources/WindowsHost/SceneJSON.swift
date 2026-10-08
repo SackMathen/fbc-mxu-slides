@@ -264,6 +264,45 @@ public enum SceneJSON {
         }
     }
 
+    /// Where an animation has moved an item at the moment the scene was
+    /// resolved: the compositor's AnimationMotion, minus the 3D terms the
+    /// canvas renderer does not do yet.
+    public struct Motion: Codable, Equatable, Sendable {
+        public struct Wipe: Codable, Equatable, Sendable {
+            public var edge: String
+            public var progress: Double
+            public var feather: Double
+        }
+
+        public struct Clip: Codable, Equatable, Sendable {
+            public var minU: Double, maxU: Double, minV: Double, maxV: Double
+        }
+
+        public var dx: Double
+        public var dy: Double
+        public var scale: Double
+        public var scaleY: Double?
+        public var tilt: Double
+        public var swing: Double
+        public var skewX: Double
+        public var skewY: Double
+        public var wipe: Wipe?
+        public var clip: Clip?
+
+        init(_ motion: AnimationMotion) {
+            dx = Double(motion.translate.dx)
+            dy = Double(motion.translate.dy)
+            scale = motion.scale
+            scaleY = motion.scaleY
+            tilt = motion.tilt
+            swing = motion.swing
+            skewX = motion.skewX
+            skewY = motion.skewY
+            wipe = motion.wipe.map { Wipe(edge: String(describing: $0.edge), progress: $0.progress, feather: $0.feather) }
+            clip = motion.clip.map { Clip(minU: $0.minU, maxU: $0.maxU, minV: $0.minV, maxV: $0.maxV) }
+        }
+    }
+
     public struct Item: Codable, Equatable, Sendable {
         public var id: String
         public var frame: Rect
@@ -277,8 +316,9 @@ public enum SceneJSON {
         public var maskOut: Bool
         public var isMatte: Bool
         public var hasAnimation: Bool
+        public var motion: Motion?
 
-        init(_ item: RenderItem) {
+        init(_ item: RenderItem, motion: AnimationMotion?) {
             id = item.id
             frame = Rect(item.frame)
             content = Content(item.content)
@@ -291,6 +331,7 @@ public enum SceneJSON {
             maskOut = item.maskOut
             isMatte = item.matteGroup != nil
             hasAnimation = !item.animationSteps.isEmpty
+            self.motion = motion.map(Motion.init)
         }
     }
 
@@ -301,12 +342,12 @@ public enum SceneJSON {
         public var hidden: Bool
         public var items: [Item]
 
-        init(_ layer: RenderLayer) {
+        init(_ layer: RenderLayer, motions: [String: AnimationMotion]) {
             id = layer.id
             kind = layer.kind.rawValue
             name = layer.name
             hidden = layer.isHidden
-            items = layer.items.map(Item.init)
+            items = layer.items.map { Item($0, motion: motions[$0.id]) }
         }
     }
 
@@ -316,17 +357,42 @@ public enum SceneJSON {
         public var background: Color
         public var layers: [Layer]
 
-        public init(_ scene: RenderScene) {
+        /// True while something in the scene still moves (an animation in
+        /// flight, a ticker, a scroll, media): the page keeps re-fetching.
+        public var timeVarying: Bool
+
+        /// The host clock the scene was resolved at, in seconds.
+        public var hostTime: Double
+
+        /// Builds the picture of `scene` at `hostTime`: every item's animation
+        /// steps are evaluated the way the compositor evaluates them, so a slide
+        /// mid-build looks the same here as on the Mac.
+        public init(_ scene: RenderScene, hostTime: Double) {
+            let resolved = AnimationEvaluator.resolve(scene, hostTime: hostTime)
             width = Double(scene.canvasSize.width)
             height = Double(scene.canvasSize.height)
             background = Color(scene.background)
-            layers = scene.layers.map(Layer.init)
+            layers = resolved.scene.layers.map { Layer($0, motions: resolved.motions) }
+            // Moving if a quarter second from now the picture differs: a build
+            // or exit in flight, a ticker, a scroll. Settled builds and clicks
+            // still to come do not count; the page re-fetches on those anyway.
+            if scene.isTimeVarying {
+                let soon = AnimationEvaluator.resolve(scene, hostTime: hostTime + 0.25)
+                timeVarying = soon != resolved
+            } else {
+                timeVarying = false
+            }
+            self.hostTime = hostTime
         }
     }
 
-    public static func encode(_ scene: RenderScene) throws -> Data {
+    /// A scene at rest: every build finished, exits not started. What
+    /// thumbnails show.
+    public static let settledHostTime = 1e9
+
+    public static func encode(_ scene: RenderScene, hostTime: Double) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        return try encoder.encode(Scene(scene))
+        return try encoder.encode(Scene(scene, hostTime: hostTime))
     }
 }
