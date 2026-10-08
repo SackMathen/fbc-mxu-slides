@@ -64,13 +64,36 @@ let usage = """
       --no-api     do not start the Local API
       --browser    open the UI in Microsoft Edge (app mode) instead of the app's own window
       --no-browser do not open any window; just serve
-      --demo       add a starter theme, four hymns and a service if the library is empty
+      --demo       add four public-domain hymns and a sample service if missing
+                   (the starter themes and the Getting Started service come on their own)
       --verbose    log every HTTP connection and request
     """
+
+/// Where log lines go besides stdout: a file, because the packaged app has no
+/// console (%LOCALAPPDATA%\MxU Slides\logs\mxu-slides.log).
+nonisolated(unsafe) var logFile: FileHandle?
+
+func openLogFile() {
+    guard let local = ProcessInfo.processInfo.environment["LOCALAPPDATA"], !local.isEmpty else { return }
+    let folder = URL(fileURLWithPath: local, isDirectory: true)
+        .appendingPathComponent("MxU Slides", isDirectory: true)
+        .appendingPathComponent("logs", isDirectory: true)
+    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    let file = folder.appendingPathComponent("mxu-slides.log")
+    if !FileManager.default.fileExists(atPath: file.path) {
+        FileManager.default.createFile(atPath: file.path, contents: nil)
+    }
+    logFile = try? FileHandle(forWritingTo: file)
+    logFile?.seekToEndOfFile()
+}
 
 func log(_ message: String) {
     print(message)
     fflush(stdout)
+    if let logFile {
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        logFile.write(Data("\(stamp) \(message)\n".utf8))
+    }
 }
 
 /// Set once the window closes, so the servers' stop errors are not reported as failures.
@@ -93,21 +116,25 @@ func runHost(_ options: Options) async throws {
 
     let model = HostModel(rootURL: options.libraryRoot)
     try await model.start()
+    // As on the Mac: starter themes and overlays, and the Getting Started service on the first run.
+    var seeded = try await StarterContent.install(into: model.client, rootURL: options.libraryRoot)
     if options.installDemo {
-        let created = try await DemoLibrary.install(into: model.client)
-        if !created.isEmpty {
-            log("  demo     added \(created.count) documents")
-            try await model.start()
-        }
+        seeded += try await DemoLibrary.install(into: model.client)
+    }
+    if !seeded.isEmpty {
+        log("  library  added \(seeded.count) starter documents")
+        try await model.start()
     }
 
     var apiServer: LocalAPIServer?
+    var apiKey: String?
     if options.serveAPI {
         let tokens = APITokenStore(
             fileURL: options.libraryRoot.appendingPathComponent("local-api-tokens.json"),
             vault: WindowsKeyVault.vault(fileURL: options.libraryRoot.appendingPathComponent("local-api-default-key.bin"))
         )
         let secret = tokens.ensureDefaultKey(evenIfPopulated: tokens.defaultKeySecret == nil)
+        apiKey = secret ?? tokens.defaultKeySecret
         let info = APIServerInfo(
             name: ProcessInfo.processInfo.hostName,
             product: "MxU Slides",
@@ -139,6 +166,7 @@ func runHost(_ options: Options) async throws {
     let ui = try UIServer(
         model: model, webRoot: webRoot, port: options.uiPort,
         localAPIPort: options.serveAPI ? Int(options.apiPort) : nil,
+        localAPIKey: apiKey,
         verbose: options.verbose
     )
     let uiTask = Task {
@@ -188,6 +216,7 @@ func runHost(_ options: Options) async throws {
     }
 }
 
+openLogFile()
 do {
     let options = try Options(arguments: CommandLine.arguments)
     try await runHost(options)

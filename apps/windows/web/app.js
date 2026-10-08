@@ -761,7 +761,23 @@
     open.addEventListener('click', openOutputWindow);
     body.appendChild(open);
     body.insertAdjacentHTML('beforeend', '<div class="module-note">Screen roles, NDI, DeckLink and output presets are not on Windows yet.</div>');
-    if (state.localAPIPort) body.insertAdjacentHTML('beforeend', `<div class="module-section">Local API</div><div class="module-note">Remotes connect on port ${state.localAPIPort}. The default key is printed in the console that started the app.</div>`);
+    if (state.localAPIPort) {
+      body.insertAdjacentHTML('beforeend', `<div class="module-section">Local API</div><div class="module-note">Remotes and control surfaces connect to this computer on port ${state.localAPIPort} with the default key.</div>`);
+      if (state.localAPIKey) {
+        const row = document.createElement('div');
+        row.className = 'module-row';
+        row.innerHTML = `<code class="key-text" title="${escape(state.localAPIKey)}">${escape(state.localAPIKey)}</code>`;
+        const copy = document.createElement('button');
+        copy.className = 'card-button';
+        copy.textContent = 'Copy';
+        copy.addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(state.localAPIKey); toast('Key copied.'); }
+          catch { toast('Could not copy; select the key and copy it.'); }
+        });
+        row.appendChild(copy);
+        body.appendChild(row);
+      }
+    }
   }
 
   function outputsKey(state) { return JSON.stringify([state.displays, state.outputs]); }

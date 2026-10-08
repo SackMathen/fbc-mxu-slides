@@ -1,4 +1,5 @@
 // swift-tools-version: 6.0
+import Foundation
 import PackageDescription
 
 // The Windows app. It reuses the platform-neutral packages under apps/mac/Packages
@@ -8,6 +9,13 @@ import PackageDescription
 // CWebView2Host is the native window (Win32 + WebView2). It compiles against
 // the WebView2 SDK in Vendor/WebView2, fetched by scripts/windows/fetch-webview2.ps1.
 let webView2SDK = Context.packageDirectory + "/Vendor/WebView2"
+
+// The icon and version block, compiled by scripts/windows/build-resources.ps1.
+// Linked when present so a bare `swift build` still works without rc.exe.
+let resourceFile = Context.packageDirectory + "/Resources/build/app.res"
+let resourceFlags: [LinkerSetting] = FileManager.default.fileExists(atPath: resourceFile)
+    ? [.unsafeFlags(["-Xlinker", resourceFile], .when(platforms: [.windows]))]
+    : []
 
 let package = Package(
     name: "MxUSlidesWindows",
@@ -64,7 +72,14 @@ let package = Package(
         ),
         .executableTarget(
             name: "MxUSlidesHost",
-            dependencies: ["WindowsHost"]
+            dependencies: ["WindowsHost"],
+            linkerSettings: resourceFlags + [
+                // A release build is a windowed app (no console); main stays the entry point.
+                .unsafeFlags(
+                    ["-Xlinker", "/SUBSYSTEM:WINDOWS", "-Xlinker", "/ENTRY:mainCRTStartup"],
+                    .when(platforms: [.windows], configuration: .release)
+                ),
+            ]
         ),
         .testTarget(
             name: "WindowsHostTests",

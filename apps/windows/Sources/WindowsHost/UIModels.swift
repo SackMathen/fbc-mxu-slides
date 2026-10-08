@@ -59,6 +59,8 @@ public struct UIState: Codable, Sendable {
     public var platform: String
     public var libraryPath: String
     public var localAPIPort: Int?
+    /// The default key remotes use; the page is loopback-only, so it may show it.
+    public var localAPIKey: String?
     public var service: Service?
     public var services: [Entry]
     public var live: Live?
