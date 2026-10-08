@@ -10,99 +10,95 @@
 <body>
 <div class="shell" id="shell">
 
+  <!-- The toolbar floats over the top 52pt of the window, as on the Mac (AppShell overlays). -->
+  <div class="toolbar" id="toolbar">
+    <div class="toolbar-leading" id="toolbar-leading">
+      <button class="icon-button sidebar-toggle" id="sidebar-toggle" title="Toggle the sidebar"></button>
+      <span class="toolbar-service-name" id="toolbar-service-name" hidden></span>
+      <div class="present-chips" id="present-chips">
+        <button class="icon-button" id="view-options" title="Present view preferences — thumbnails only, never output"></button>
+        <div class="transition-chips">
+          <button class="icon-button transition" id="transition-media" title="Dissolve 0.7s — the media layer's default transition"></button>
+          <button class="icon-button transition" id="transition-slide" title="Cut — the slide layer's default transition"></button>
+        </div>
+      </div>
+    </div>
+    <div class="toolbar-center">
+      <button class="mode-switcher" id="mode-switcher" title="Switch between Present and Edit">
+        <span id="mode-title">Present</span><span class="updown"></span>
+      </button>
+      <div class="segmented" id="edit-contexts" hidden>
+        <button class="segment selected">Slides</button><button class="segment">Overlays</button><button class="segment">Themes</button><button class="segment">Confidence</button>
+      </div>
+    </div>
+    <div class="toolbar-trailing" id="toolbar-trailing">
+      <button class="capsule" id="broadcast-chip" title="Stream &amp; Record — stream and recording status"></button>
+      <button class="capsule" id="preset-chip" title="Output Preset: Default — All Layers — which layers reach the glass"></button>
+      <button class="capsule" id="clear-chip" title="Clear — everything at once, one function, or one layer"></button>
+    </div>
+  </div>
+
   <aside class="sidebar" id="sidebar">
     <section class="panel service-panel" id="service-panel">
       <div class="panel-caption-row"><span class="caption">Service Flow</span></div>
       <div class="service-header">
-        <button class="chip chip-menu" id="service-menu" title="Choose the service">
-          <span id="service-name">Choose…</span><span class="chevron">⌄</span>
-        </button>
-        <span class="service-date" id="service-date"></span>
+        <button class="quiet-chip" id="service-menu" title="Choose the service"><span id="service-name">Choose…</span><span class="chev"></span></button>
+        <span class="spacer"></span>
+        <button class="service-date" id="service-date" title="The service date"></button>
       </div>
       <div class="divider"></div>
       <div class="run-order" id="run-order"></div>
+      <div class="divider"></div>
+      <div class="add-bar">
+        <button class="text-button" id="add-item" disabled title="Editing the run order comes to Windows later"><span class="plus"></span>Add Item</button>
+        <span class="spacer"></span>
+        <span class="footnote" id="item-count"></span>
+      </div>
     </section>
     <div class="split-grip" id="sidebar-grip" title="Resize"></div>
     <section class="panel library-panel" id="library-panel">
       <div class="library-header">
         <span class="caption">Libraries</span>
-        <label class="search"><span class="search-glyph">⌕</span><input id="library-search" type="search" placeholder="Search" autocomplete="off"></label>
-        <button class="icon-button" title="Sort">≡</button>
+        <label class="search" id="search-field"><span class="search-glyph"></span><input id="library-search" type="search" placeholder="Search" autocomplete="off" spellcheck="false"></label>
+        <button class="icon-button tiny" id="library-filter" title="Filter the library"></button>
       </div>
       <div class="tab-row" id="library-tabs"></div>
       <div class="divider"></div>
       <div class="library-list" id="library-list"></div>
       <div class="divider"></div>
       <div class="library-footer">
-        <button class="text-button" id="library-new" disabled title="Editing comes to Windows later">＋ New</button>
+        <button class="text-button" id="library-new" disabled title="Editing comes to Windows later"><span class="plus"></span>New</button>
+        <button class="text-button" id="library-new-folder" disabled title="Editing comes to Windows later"><span class="folder-plus"></span>New Folder</button>
         <span class="spacer"></span>
-        <span class="footnote" id="library-count"></span>
+        <button class="icon-button tiny" id="library-view-mode" title="List view — click for grid"></button>
       </div>
     </section>
   </aside>
 
   <main class="main" id="main">
-    <div class="header" id="header">
-      <div class="header-left">
-        <button class="icon-button sidebar-toggle" id="sidebar-toggle" title="Toggle the sidebar">
-          <svg width="17" height="13.5" viewBox="0 0 17 13.5" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="0.7" y="0.7" width="15.6" height="12.1" rx="3.3"/><line x1="6" y1="1.4" x2="6" y2="12.1"/></svg>
-        </button>
-        <button class="chip chip-menu mode-switcher" id="mode-switcher" title="Switch between Present and Edit">
-          <span id="mode-title">Present</span><span class="chevron tiny">⌃⌄</span>
-        </button>
-        <div class="segmented" id="edit-contexts" hidden>
-          <button class="segment selected">Slides</button><button class="segment">Overlays</button><button class="segment">Themes</button><button class="segment">Confidence</button>
-        </div>
-        <button class="icon-button" id="view-options" title="Present view preferences — thumbnails only, never output">
-          <svg width="17" height="13.5" viewBox="0 0 17 13.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="0.7" y1="2.2" x2="9.6" y2="2.2"/><circle cx="12" cy="2.2" r="2.2"/><line x1="14.3" y1="2.2" x2="16.3" y2="2.2"/><line x1="0.7" y1="6.75" x2="2.2" y2="6.75"/><circle cx="4.6" cy="6.75" r="2.2"/><line x1="6.9" y1="6.75" x2="16.3" y2="6.75"/><line x1="0.7" y1="11.3" x2="7" y2="11.3"/><circle cx="9.4" cy="11.3" r="2.2"/><line x1="11.7" y1="11.3" x2="16.3" y2="11.3"/></svg>
-        </button>
-        <div class="transition-chips">
-          <span class="chip transition-chip" title="Media transition"><span class="glyph">▣</span> Dissolve <span class="muted">0.7s</span></span>
-          <span class="chip transition-chip" title="Slide transition"><span class="glyph">❏</span> Cut</span>
-        </div>
-      </div>
-      <div class="header-right">
-        <span class="chip status-chip" id="broadcast-chip" title="Streaming and recording are not on Windows yet"><span class="dot"></span>Off Air</span>
-        <span class="chip status-chip" id="preset-chip" title="Output presets are not on Windows yet">No Preset</span>
-        <div class="chip-group">
-          <button class="chip clear-chip" id="clear-all" title="Clear everything (the panic clear)"><span class="glyph">⊘</span> Clear</button>
-          <button class="chip chip-menu clear-menu-button" id="clear-menu-button" title="Clear one function"><span class="chevron">⌄</span></button>
-        </div>
-      </div>
-    </div>
-
     <div class="present-view" id="present-view" tabindex="0"></div>
-
     <div class="present-footer">
       <div class="transport-strip idle" id="transport-strip">
-        <span class="chip chip-menu layer-chip"><span class="glyph">⧉</span> Videos <span class="chevron">⌄</span></span>
-        <span class="transport-chip">▶</span>
+        <button class="layer-chip" title="Which media layer the transport controls"><span class="layers-glyph"></span>Foreground Videos<span class="chev"></span></button>
+        <button class="transport-button" title="Play"><span class="play-glyph"></span></button>
         <div class="transport-middle">
           <div class="transport-title">No video playing</div>
           <div class="scrub-bar"></div>
           <div class="transport-time">0:00 / 0:00</div>
         </div>
-        <span class="transport-chip stacked">⇥<small>-30</small></span>
+        <button class="transport-button stacked" title="Skip to the last 30 seconds"><span class="skip-glyph"></span><small>-30</small></button>
       </div>
-      <div class="auto-advance" id="auto-advance"></div>
     </div>
   </main>
 
   <aside class="rail" id="rail">
-    <section class="panel preview-panel">
-      <div class="panel-caption-row between"><span class="caption">Output Preview</span><span class="chip chip-menu small" id="preview-target">Audience <span class="chevron">⌄</span></span></div>
-      <div class="preview-frame">
-        <canvas id="preview-canvas" width="1920" height="1080"></canvas>
-        <div class="preview-badge" id="preview-badge" hidden>LIVE</div>
-      </div>
-      <div class="confidence-readout" id="confidence">
-        <div class="readout-block"><span class="readout-label">Current</span><div class="readout-text" id="current-text">—</div></div>
-        <div class="readout-block"><span class="readout-label">Next</span><div class="readout-text next" id="next-text">—</div></div>
-      </div>
+    <section class="panel preview-panel" id="preview-panel">
+      <div class="section-header"><span class="caption">Output Preview</span><span class="spacer"></span><button class="quiet-chip small" id="preview-target" title="Which screen the preview shows"><span id="preview-target-name">Audience</span><span class="chev"></span></button></div>
+      <div class="preview-frame"><canvas id="preview-canvas" width="1920" height="1080"></canvas></div>
     </section>
-    <div class="split-grip" title="Resize"></div>
+    <div class="split-grip" id="rail-grip" title="Resize"></div>
     <section class="panel controls-panel">
-      <div class="panel-caption-row"><span class="caption">Service Controls</span></div>
+      <div class="section-header"><span class="caption">Service Controls</span><span class="spacer"></span><button class="icon-button tiny" id="module-popout" title="Open this module in its own window (not on Windows yet)" disabled></button></div>
       <div class="tab-row modules" id="module-tabs"></div>
       <div class="divider"></div>
       <div class="module-body" id="module-body"></div>

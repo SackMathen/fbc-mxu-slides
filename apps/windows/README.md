@@ -15,8 +15,10 @@ renders the output.
   Edge engine that ships with Windows 11), dark title bar, per-monitor DPI.
   It runs on its own thread; the main thread keeps serving.
 - `web/`: the user interface, built from the Mac app's SwiftUI views and design
-  system: the Service Flow and Libraries sidebar, the Present view with the
-  continuous service grid, the Output Preview, and the Service Controls rail.
+  system and checked against a screenshot of the Mac app: the toolbar with the
+  centered mode switcher, the Service Flow and Libraries sidebar, the Present
+  view with its sticky deck cards and section pills, the Output Preview, and
+  the Service Controls rail with its priority tab row.
 - `web/renderer.js`: draws the scene model (text, shapes, fills, stills) on a
   canvas, both for thumbnails and for the output window.
 - `--demo` seeds an empty library with a starter theme, its overlays, the

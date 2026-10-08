@@ -122,11 +122,12 @@ public enum UIModels {
             musicKey: presentation.displayKey ?? presentation.musicKey,
             slides: slides.enumerated().map { index, slide in
                 let section = slide.sectionId.flatMap { sections[$0] }
+                // The grid caption, as on the Mac (PresentGridView.labelName): the
+                // slide's name when it has one of its own, otherwise just the number.
                 let label: String
                 switch SlidePreview.rowText(for: slide, backgroundMediaName: nil) {
-                case .preview(let text): label = text
                 case .name: label = slide.name
-                case .number: label = "\(index + 1)"
+                case .preview, .number: label = ""
                 }
                 return UIPresentation.Slide(
                     id: slide.id, index: index, name: slide.name, label: label,
