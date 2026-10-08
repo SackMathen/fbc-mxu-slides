@@ -297,9 +297,14 @@ public enum SlideSceneBuilder {
                 else { continue }
                 let baseID = item.id.hasSuffix("::text") ? String(item.id.dropLast(6)) : item.id
                 guard objectIDs.contains(baseID), !clipped.contains(baseID) else { continue }
+                #if canImport(CoreText)
                 if TextRasterizer.overflows(styled, sceneFrame: item.frame.size) {
                     clipped.append(baseID)
                 }
+                #else
+                // TODO(windows): needs the Windows text engine to measure overflow.
+                _ = styled
+                #endif
             }
         }
         return clipped

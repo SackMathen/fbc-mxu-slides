@@ -129,7 +129,7 @@ public enum EditorGeometry {
         let motion = perspectiveMotion(for: object)
         let rotation = object.rotationDegrees ?? 0
         guard !motion.isIdentity || rotation.truncatingRemainder(dividingBy: 360) != 0 else { return nil }
-        let projected = Compositor.buildQuadCorners(
+        let projected = QuadProjection.buildQuadCorners(
             contentRect: frame, motion: motion, sceneScale: 1, targetSize: canvasSize
         )
         guard rotation != 0 else { return projected }

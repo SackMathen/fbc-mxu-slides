@@ -81,7 +81,14 @@ public enum Paging {
             else { continue }
             let styled = SlideSceneBuilder.styledText(for: object, theme: theme, placeholder: placeholder)
             let frame = SlideSceneBuilder.frame(for: object, placeholder: placeholder, in: canvas)
+            #if canImport(CoreText)
             let pages = TextRasterizer.pages(for: styled, sceneFrame: frame.size)
+            #else
+            // TODO(windows): page overflowing text once the Windows text engine can measure it.
+            let pages: [String] = []
+            _ = styled
+            _ = frame
+            #endif
             if pages.count > 1 { result[index] = pages }
         }
         return result

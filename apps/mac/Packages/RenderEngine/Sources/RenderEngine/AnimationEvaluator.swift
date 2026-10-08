@@ -164,7 +164,11 @@ public enum AnimationEvaluator {
         let anchor = item.tickerAnchorHostTime ?? item.animationContext?.anchorHostTime
         let now = item.animationContext?.frozenHostTime ?? hostTime
         let elapsed = anchor.map { now - $0 } ?? now
+        #if canImport(CoreText)
         let blockHeight = TextRasterizer.blockHeight(for: text, sceneWidth: item.frame.width)
+        #else
+        let blockHeight = TextMetricsFallback.blockHeight(for: text, sceneWidth: item.frame.width)
+        #endif
         guard let rolled = BlockScrollRoll.resolve(
             item, text: text, scroll: scroll, blockHeight: blockHeight, elapsed: elapsed, anchored: anchor != nil
         ) else { return [] }

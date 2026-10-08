@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MxU Slides — Output</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  .hint { position: fixed; left: 50%; top: 24px; transform: translateX(-50%); color: #fff; font: 14px system-ui, "Segoe UI", sans-serif;
+          background: rgba(0,0,0,.6); padding: 8px 14px; border-radius: 8px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  body.show-hint .hint { opacity: 1; }
+</style>
+</head>
+<body>
+<canvas id="output"></canvas>
+<div class="hint">Double-click for full screen · drag this window to the projector</div>
+<script src="/static/renderer.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('output');
+  const renderer = new SceneRenderer(canvas, { mediaURL: id => `/ui/v1/media/${encodeURIComponent(id)}` });
+  let lastVersion = null;
+  let scene = null;
+
+  function fit() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(window.innerWidth * dpr);
+    canvas.height = Math.round(window.innerHeight * dpr);
+    if (scene) renderer.draw(scene);
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  async function poll() {
+    try {
+      const state = await (await fetch('/ui/v1/state', { cache: 'no-store' })).json();
+      if (state.version !== lastVersion) {
+        lastVersion = state.version;
+        scene = await (await fetch('/ui/v1/scene/live', { cache: 'no-store' })).json();
+        renderer.draw(scene);
+      }
+    } catch (error) {
+      // the host is restarting; try again shortly
+    }
+    setTimeout(poll, 200);
+  }
+  poll();
+
+  document.body.classList.add('show-hint');
+  setTimeout(() => document.body.classList.remove('show-hint'), 4000);
+  document.addEventListener('dblclick', () => {
+    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen();
+  });
+  document.addEventListener('mousemove', () => {
+    document.body.style.cursor = 'default';
+    clearTimeout(window.__hideCursor);
+    window.__hideCursor = setTimeout(() => { document.body.style.cursor = 'none'; }, 2000);
+  });
+})();
+</script>
+</body>
+</html>

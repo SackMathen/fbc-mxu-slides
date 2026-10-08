@@ -19,7 +19,7 @@ struct PagingTests {
     private let digital = StarterPack.digital.makeTheme()
     private var sideThirds: Theme { digital.scoped(toSlideFolder: "Side Thirds") }
 
-    @Test func aPagingLookTurnsOverflowIntoClickPagesBeforeTheLeave() {
+    @Test(.enabled(if: TextEngine.isAvailable, "needs the CoreText text engine")) func aPagingLookTurnsOverflowIntoClickPagesBeforeTheLeave() {
         var s = slide
         s.setOverrideDesign("Verse + Reference (Side Third)", forTheme: digital.id)
         let r = s.rendered(throughOverride: sideThirds)
@@ -53,7 +53,7 @@ struct PagingTests {
         #expect(show.slideClickCount == pages, "pages minus one, plus the Out")
     }
 
-    @Test func ownFramedSlidesPageThroughTheLookNotTheirOwnBox() {
+    @Test(.enabled(if: TextEngine.isAvailable, "needs the CoreText text engine")) func ownFramedSlidesPageThroughTheLookNotTheirOwnBox() {
         var own = slide
         own.objects[1].x = 172; own.objects[1].y = 150; own.objects[1].width = 1575; own.objects[1].height = 810
         own.objects[1].textStyle = TextStyle(fontName: "HelveticaNeue", fontSize: 42)
@@ -76,7 +76,7 @@ struct PagingTests {
         #expect(show.slideClickCount == leave + pages.count - 1, "the advance bookkeeping sees the pages the output turns")
     }
 
-    @Test func thumbnailsShowPageOneAndAFittingTextNeverPages() {
+    @Test(.enabled(if: TextEngine.isAvailable, "needs the CoreText text engine")) func thumbnailsShowPageOneAndAFittingTextNeverPages() {
         var s = slide
         s.setOverrideDesign("Verse + Reference (Side Third)", forTheme: digital.id)
         let r = s.rendered(throughOverride: sideThirds)

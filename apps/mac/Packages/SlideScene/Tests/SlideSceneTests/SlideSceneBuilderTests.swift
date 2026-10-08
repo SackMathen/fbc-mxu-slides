@@ -1020,6 +1020,7 @@ private func themedTheme() -> Theme {
     #expect(clamped.contains("L 0.875000 0")) 
 }
 
+#if canImport(CoreText)
 @Test func generatedOutlineParsesFlattensClosedAndMatchesCornerRadius() {
 
     let frame = CGSize(width: 400, height: 100)
@@ -1038,6 +1039,7 @@ private func themedTheme() -> Theme {
         #expect(abs(radial - 30) < 0.35, "corner point must ride the r=30 circle")
     }
 }
+#endif
 
 @Test func overlayShapeTextReachesTheProgramScene() {
 
@@ -1272,7 +1274,7 @@ private func themedTheme() -> Theme {
     #expect(SlideSceneBuilder.renderItem(for: object, theme: theme).tilt == 25)
 }
 
-@Test func clippedTextObjectIDsFlagOverflowingBoxes() {
+@Test(.enabled(if: TextEngine.isAvailable, "needs the CoreText text engine")) func clippedTextObjectIDsFlagOverflowingBoxes() {
     var style = TextStyle()
     style.fontSize = 96
     var big = SlideObject(id: "big", objectKind: .text, name: "T", text:
